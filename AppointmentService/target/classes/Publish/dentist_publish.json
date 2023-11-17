@@ -1,0 +1,10 @@
+{
+  "Dentist": "id",
+  "Patient": "",
+  "Location": "location",
+  "Date": "2023-11-17",
+  "Time": {
+    "Start_time": "10:00",
+    "End_time": "11:00"
+  }
+}
