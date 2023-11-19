@@ -25,18 +25,21 @@ public class AppointmentService {
         MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
 
+        patientCreateAppointment(appointmentDatabase);
+        // dentistDeleteAppointment(appointmentDatabase.getCollection("Appointments"), "client_id", "patient_id", "754", "start_time")
+
         ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
-            new String[][] {
-                {"clinic_id", "70"},
-                {"dentist_id", "64"}
-            }
+                new String[][] {
+                        {"clinic_id", "70"},
+                        {"dentist_id", "64"}
+                }
         );
 
         System.out.println(foundDocuments);
 
         // createAvailableTime(appointmentDatabase);
         // createAppointment(appointmentDatabase);
-        
+
 
         // TODO:
         // 1) Research on how to query the collection --> Commands
@@ -47,7 +50,7 @@ public class AppointmentService {
 
         // 3) Refactor into a static MongoDBUtils.java class, and possibly refactor into 'MongoDBSchema' that creates document-collection formats
 
-        
+
         // MQTTHandler mqttHandler = new MQTTHandler();
     }
 
@@ -67,7 +70,7 @@ public class AppointmentService {
     }
 
     // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void createAvailableTime(MongoDatabase appointmentDatabase) {
+    private static void dentistCreateAvailableTime(MongoDatabase appointmentDatabase) {
         // TODO:
         // 1) Verify that the topic containts 'dentist'
 
@@ -76,7 +79,7 @@ public class AppointmentService {
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
-    private static void createAppointment(MongoDatabase appointmentDatabase) {
+    private static void patientCreateAppointment(MongoDatabase appointmentDatabase) {
         // TODO:
         // 1) Verify that the topic containts 'patient'
         // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
@@ -87,27 +90,54 @@ public class AppointmentService {
         appointmentsCollection.insertOne(makeAppointmentsDocument());
     }
 
+    // Delete instance from 'AvailableTimes' collection
+    private static void dentistDeleteAppointment(MongoCollection<Document> collection, String clinicId, String patientiD, String dentistId, String startTime) {
+
+        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
+                new String[][] {
+                        {"clinic_id", clinicId},
+                        {"dentist_id", dentistId}
+                }
+        );
+
+        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+        Bson searchQuery = new Document("appointment_id", clinicId)
+                .append("dentist_id", dentistId);
+        collection.findOneAndDelete(searchQuery);
+
+
+
+        if (foundDocuments.size() > 0){
+            collection.findOneAndDelete(foundDocuments)
+        }
+        if (!patientiD==null){
+            // notify notification service for patient and user
+        } else {
+            // maybe notify dentist client?
+        }
+    }
+
+    private static void patientDeleteAppointment() {
+        // Access User Service - patient collection - Change appointment attribute to null
+        // Migrate data from Appoinment to AvailableTimes
+        // Notify dentist
+    }
+
     // IDEA: Refactor into MongoDBSchema.java:
 
     private static Document makeAvailableTimeDocument() {
         return new Document("clinic_id", "70")
-            .append("dentist_id",  "40")
-            .append("start_time", "10:30")
-            .append("end_time", "11:30");
+                .append("dentist_id",  "40")
+                .append("start_time", "10:30")
+                .append("end_time", "11:30");
     }
 
     private static Document makeAppointmentsDocument() {
-        return new Document("appointment_id", "78")
-            .append("dentist_id",  "754")
-            .append("patient_id",  "92")
-            .append("start_time", "14:00")
-            .append("end_time", "15:00");
-    }
-
-    // Delete instance from 'AvailableTimes' collection
-    private static void deleteOne(MongoCollection<Document> collection, String clinicId, String dentistId, String startTime) {
-        // Perform search query to find document to delete
-        // collection.findOneAndDelete(eq("clinic_id", clinicId));
+        return new Document("clinic_id", "80")
+                .append("dentist_id",  "75")
+                .append("patient_id",  "91")
+                .append("start_time", "14:00")
+                .append("end_time", "15:00");
     }
 
     private static ArrayList<Document> searchQueryFunction(MongoCollection<Document> collection, String[][] queryConditions) {
