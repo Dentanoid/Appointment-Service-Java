@@ -25,8 +25,9 @@ public class AppointmentService {
         MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
 
-        patientCreateAppointment(appointmentDatabase);
-        // dentistDeleteAppointment(appointmentDatabase.getCollection("Appointments"), "client_id", "patient_id", "754", "start_time")
+        //patientCreateAppointment(appointmentDatabase);
+        patientDeleteAppointment(appointmentDatabase, "655a686152d0447697cc545d");
+       //dentistDeleteAppointment(appointmentDatabase, "80", "91", "75", "start_time");
 
         ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
                 new String[][] {
@@ -117,10 +118,21 @@ public class AppointmentService {
         }
     }
 
-    private static void patientDeleteAppointment() {
+    private static void patientDeleteAppointment(MongoDatabase appointmentDatabase, String objectId) {
         // Access User Service - patient collection - Change appointment attribute to null
         // Migrate data from Appoinment to AvailableTimes
         // Notify dentist
+        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+        ObjectId appointmentId = new ObjectId(objectId);
+        Bson searchQuery = new Document("_id", appointmentId);
+
+        Document foundDocument = collection.find(searchQuery).first();
+
+        if (foundDocument != null) {
+            collection.findOneAndDelete(foundDocument);
+        }else {
+            System.out.println("Object with this objectId is not found");
+        }
     }
 
     // IDEA: Refactor into MongoDBSchema.java:
