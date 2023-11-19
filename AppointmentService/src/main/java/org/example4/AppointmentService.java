@@ -1,7 +1,5 @@
 package org.example4;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
@@ -10,15 +8,12 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 public class AppointmentService {
     public static void main(String[] args) {
@@ -26,7 +21,7 @@ public class AppointmentService {
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
 
         //patientCreateAppointment(appointmentDatabase);
-        patientDeleteAppointment(appointmentDatabase, "655a686152d0447697cc545d");
+        patientDeleteAppointment(appointmentDatabase, "655a733a6cf3c57cf7577a6a");
        //dentistDeleteAppointment(appointmentDatabase, "80", "91", "75", "start_time");
 
         ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
@@ -92,7 +87,7 @@ public class AppointmentService {
     }
 
     // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(MongoCollection<Document> collection, String clinicId, String patientiD, String dentistId, String startTime) {
+    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId, String startTime) {
 
         ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
                 new String[][] {
@@ -105,17 +100,6 @@ public class AppointmentService {
         Bson searchQuery = new Document("appointment_id", clinicId)
                 .append("dentist_id", dentistId);
         collection.findOneAndDelete(searchQuery);
-
-
-
-        if (foundDocuments.size() > 0){
-            collection.findOneAndDelete(foundDocuments)
-        }
-        if (!patientiD==null){
-            // notify notification service for patient and user
-        } else {
-            // maybe notify dentist client?
-        }
     }
 
     private static void patientDeleteAppointment(MongoDatabase appointmentDatabase, String objectId) {
@@ -123,14 +107,21 @@ public class AppointmentService {
         // Migrate data from Appoinment to AvailableTimes
         // Notify dentist
         MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+        MongoCollection<Document> publishCollection = appointmentDatabase.getCollection("AvailableTimes");
         ObjectId appointmentId = new ObjectId(objectId);
         Bson searchQuery = new Document("_id", appointmentId);
-
+    
         Document foundDocument = collection.find(searchQuery).first();
-
+    
         if (foundDocument != null) {
-            collection.findOneAndDelete(foundDocument);
-        }else {
+            // Delete from the Appointments collection and get the document
+            Document deletedDocument = collection.findOneAndDelete(searchQuery);
+            deletedDocument.remove("patient_id");
+            // Insert the deleted document into the AvailableTimes collection
+            publishCollection.insertOne(deletedDocument);
+    
+            System.out.println("Document deleted and migrated successfully.");
+        } else {
             System.out.println("Object with this objectId is not found");
         }
     }
@@ -145,7 +136,7 @@ public class AppointmentService {
     }
 
     private static Document makeAppointmentsDocument() {
-        return new Document("clinic_id", "80")
+        return new Document("clinic_id", "123456")
                 .append("dentist_id",  "75")
                 .append("patient_id",  "91")
                 .append("start_time", "14:00")
