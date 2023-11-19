@@ -2,16 +2,137 @@ package org.example4;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 public class AppointmentService {
     public static void main(String[] args) {
-        MQTTHandler mqttHandler = new MQTTHandler();
+        MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
+        MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
+
+        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
+            new String[][] {
+                {"clinic_id", "70"},
+                {"dentist_id", "64"}
+            }
+        );
+
+        System.out.println(foundDocuments);
+
+        // createAvailableTime(appointmentDatabase);
+        // createAppointment(appointmentDatabase);
+        
+
+        // TODO:
+        // 1) Research on how to query the collection --> Commands
+        //      - DELETE (appointment_id) operation --> cancel_appointment
+
+        // 2) Store the json-subscription recieved in MqttMain in DB
+
+
+        // 3) Refactor into a static MongoDBUtils.java class, and possibly refactor into 'MongoDBSchema' that creates document-collection formats
+
+        
+        // MQTTHandler mqttHandler = new MQTTHandler();
     }
 
-    public static void integrateMqqt() {
-        
+    // POST - Create new instance in database
+    private static void addCollection(MongoCollection<Document> coll, Document dataToRegister) {
+        coll.insertOne(dataToRegister);
+    }
+
+    // READ - Get all instances in a collection
+    private static void printCollection(MongoCollection<Document> collection) {
+        FindIterable<Document> documents = collection.find();
+        Iterator<Document> it = documents.iterator();
+        while (it.hasNext()) {
+            Document doc = it.next();
+            System.out.println(doc.toJson());
+        }
+    }
+
+    // POST - Dentist creates a timeslot in which patients can book appointments
+    private static void createAvailableTime(MongoDatabase appointmentDatabase) {
+        // TODO:
+        // 1) Verify that the topic containts 'dentist'
+
+        MongoCollection<Document> availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
+        availableTimesCollection.insertOne(makeAvailableTimeDocument());
+    }
+
+    // Patient registers on existing slot found in 'AvailableTimes' collection
+    private static void createAppointment(MongoDatabase appointmentDatabase) {
+        // TODO:
+        // 1) Verify that the topic containts 'patient'
+        // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
+        // 3) Create appointment in 'Appointments' collection
+
+
+        MongoCollection<Document> appointmentsCollection = appointmentDatabase.getCollection("Appointments");
+        appointmentsCollection.insertOne(makeAppointmentsDocument());
+    }
+
+    // IDEA: Refactor into MongoDBSchema.java:
+
+    private static Document makeAvailableTimeDocument() {
+        return new Document("clinic_id", "70")
+            .append("dentist_id",  "40")
+            .append("start_time", "10:30")
+            .append("end_time", "11:30");
+    }
+
+    private static Document makeAppointmentsDocument() {
+        return new Document("appointment_id", "78")
+            .append("dentist_id",  "754")
+            .append("patient_id",  "92")
+            .append("start_time", "14:00")
+            .append("end_time", "15:00");
+    }
+
+    // Delete instance from 'AvailableTimes' collection
+    private static void deleteOne(MongoCollection<Document> collection, String clinicId, String dentistId, String startTime) {
+        // Perform search query to find document to delete
+        // collection.findOneAndDelete(eq("clinic_id", clinicId));
+    }
+
+    private static ArrayList<Document> searchQueryFunction(MongoCollection<Document> collection, String[][] queryConditions) {
+        BasicDBObject searchQuery = new BasicDBObject();
+        searchQuery.putAll(transformToMap(queryConditions));
+
+        MongoCursor<Document> cursor = collection.find(searchQuery).iterator();
+        ArrayList<Document> foundDocuments = new ArrayList<Document>();
+
+        while (cursor.hasNext()) {
+            foundDocuments.add(cursor.next());
+        }
+
+        return foundDocuments;
+    }
+
+    // Transform the 2D array to a hash map to match the allowed datatype parameters that 'BasicDBObject' supports
+    private static HashMap<String, String> transformToMap(String[][] queryConditions) {
+        HashMap<String, String> map = new HashMap<String, String>(queryConditions.length);
+
+        for (String[] mapping : queryConditions)
+        {
+            map.put(mapping[0], mapping[1]);
+        }
+
+        return map;
     }
 }
