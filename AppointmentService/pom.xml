@@ -54,6 +54,12 @@
             <artifactId>hivemq-mqtt-client</artifactId>
             <version>develop-SNAPSHOT</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>4.0.5</version>
+        </dependency>
     </dependencies>
 
 </project>
