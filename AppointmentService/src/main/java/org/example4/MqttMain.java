@@ -1,60 +1,96 @@
 package org.example4;
 
-import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-
-import static com.hivemq.client.mqtt.MqttGlobalPublishFilter.ALL;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.nio.CharBuffer;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
-    public static void main(String[] args) throws Exception {
+    String broker = "tcp://broker.hivemq.com:1883";
+    // String topic = "my/test/topic"; // testing1239081239084    
 
-        final String host = "5c221c75b8354617b30aad7a2186be07.s1.eu.hivemq.cloud"; // "5c221c75b8354617b30aad7a2186be07.s1.eu.hivemq.cloud" (works locally)  |   "broker.hivemq.com" (will be implemented with group --> Access localhost broker statistics)
-        final String username = "MyCluster1"; // "MyCluster1"
-        final String password = "Cluster123"; // "Cluster123"
+    // Specific for publish
+    // String content;
 
-        // create an MQTT client
-        final Mqtt5BlockingClient client = MqttClient.builder()
-                .useMqttVersion5()
-                .serverHost(host)
-                .serverPort(8883)
-                .sslWithDefaultConfig()
-                .buildBlocking();
+    public MqttMain(String broker) {
+        this.broker = broker;
+    }
 
-        // connect to HiveMQ Cloud with TLS and username/pw
-        client.connectWith()
-                .simpleAuth()
-                .username(username)
-                .password(UTF_8.encode(password))
-                .applySimpleAuth()
-                .send();
+    public void publishMessage(String topic, String content) {
+    int qos             = 0; // 2
+    String broker       = "tcp://broker.hivemq.com:1883";
+    String clientId     = "JavaSampleClientId";
+    MemoryPersistence persistence = new MemoryPersistence();
 
-        System.out.println("Connected successfully");
+        try {
+            MqttClient sampleClient = new MqttClient(broker, clientId, persistence);
+            MqttConnectOptions connOpts = new MqttConnectOptions();
+            connOpts.setCleanSession(true);
+            System.out.println("Connecting to broker: "+broker);
+            sampleClient.connect(connOpts);
+            System.out.println("Connected");
+            System.out.println("Publishing message: "+content);
+            MqttMessage message = new MqttMessage(content.getBytes());
+            message.setQos(qos);
+            sampleClient.publish(topic, message);
+            System.out.println("Message published");
 
-        // subscribe to the topic "my/test/topic"
-        client.subscribeWith()
-                .topicFilter("my/test/topic")
-                .send();
+            // sampleClient.disconnect();
+            // System.out.println("Disconnected");
+            // System.exit(0);
+        } catch(MqttException me) {
+            System.out.println("reason "+me.getReasonCode());
+            System.out.println("msg "+me.getMessage());
+            System.out.println("loc "+me.getLocalizedMessage());
+            System.out.println("cause "+me.getCause());
+            System.out.println("excep "+me);
+            me.printStackTrace();
+        }
+    }
 
-        // set a callback that is called when a message is received (using the async API style)
-        client.toAsync().publishes(ALL, publish -> {
-            System.out.println("Received message: " +
-                publish.getTopic() + " -> " +
-                UTF_8.decode(publish.getPayload().get()));
-            
-            CharBuffer myJson = UTF_8.decode(publish.getPayload().get());
-            System.out.println(myJson);
-            
-            // disconnect the client after a message was received
-            // client.disconnect();
-        });
+    public void subscribe(String topic) {
+        // Specific for subscribe
+        String username = "Test"; // emqx
+        String password = "Test123";
 
-        // publish a message to the topic "my/test/topic"
-        client.publishWith()
-                .topic("my/test/topic2")
-                .payload(UTF_8.encode("Publish from IDE!"))
-                .send();
+        // Can be refactored:
+        String clientid = "subscribe_client"; // "subscribe_client"
+        int qos = 0;
+
+        try {
+           MqttClient client = new MqttClient(broker, clientid, new MemoryPersistence());
+           // connect options
+           MqttConnectOptions options = new MqttConnectOptions();
+           options.setUserName(username);
+           options.setPassword(password.toCharArray());
+           options.setConnectionTimeout(60);
+            options.setKeepAliveInterval(60);
+           // setup callback
+           client.setCallback(new MqttCallback() {
+
+               public void connectionLost(Throwable cause) {
+                   System.out.println("connectionLost: " + cause.getMessage());
+              }
+
+               public void messageArrived(String topic, MqttMessage message) {
+                   System.out.println("topic: " + topic);
+                   System.out.println("Qos: " + message.getQos());
+                   System.out.println("message content: " + new String(message.getPayload()));
+
+              }
+
+               public void deliveryComplete(IMqttDeliveryToken token) {
+                   System.out.println("deliveryComplete---------" + token.isComplete());
+              }
+
+          });
+           client.connect(options);
+           client.subscribe(topic, qos);
+      } catch (Exception e) {
+           e.printStackTrace();
+      }
     }
 }
