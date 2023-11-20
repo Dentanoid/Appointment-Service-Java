@@ -66,11 +66,29 @@ public class AppointmentService {
 
     // POST - Dentist creates a timeslot in which patients can book appointments
     private static void dentistCreateAvailableTime(MongoDatabase appointmentDatabase) {
-        // TODO:
-        // 1) Verify that the topic containts 'dentist'
+        try {
+            MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+            ObjectId appointmentObjectId = new ObjectId(appointmentId);
 
-        MongoCollection<Document> availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
-        availableTimesCollection.insertOne(makeAvailableTimeDocument());
+            Bson searchQuery = new Document("_id", appointmentObjectId);
+            Document deletedDocument = collection.findOneAndDelete(searchQuery);
+
+            MongoCollection<Document> availableCollection = appointmentDatabase.getCollection("AvailableTimes");
+            availableCollection.findOneAndDelete(searchQuery);
+
+            System.out.println("Appointment deleted successfully.");
+
+            // MQTT notification for success
+            String successMessage = "Appointment deleted successfully. Appointment ID: " + appointmentId;
+            publishMQTTMessage(successMessage, "success");
+
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
+
+            // MQTT notification for failure
+            String failureMessage = "Appointment deletion failed. Error: " + e.getMessage();
+            publishMQTTMessage(failureMessage, "failure");
+        }
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
