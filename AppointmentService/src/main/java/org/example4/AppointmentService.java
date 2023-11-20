@@ -1,7 +1,6 @@
 package org.example4;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
@@ -10,13 +9,9 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -116,10 +111,43 @@ public class AppointmentService {
         }
     }
 
-    private static void patientDeleteAppointment() {
+    private static void patientDeleteAppointment(String objectId) {
         // Access User Service - patient collection - Change appointment attribute to null
         // Migrate data from Appoinment to AvailableTimes
         // Notify dentist
+
+        ObjectId appointmentId;
+
+        try {
+            appointmentId = new ObjectId(objectId);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid ObjectId format");
+            return;
+        }
+
+        Bson searchQuery = new Document("_id", appointmentId);
+
+        try {
+            Document foundDocument = appointmentsCollection.find(searchQuery).first();
+
+            if (foundDocument != null) {
+                // Delete from the Appointments collection and get the document
+                Document deletedDocument = appointmentsCollection.findOneAndDelete(searchQuery);
+                mqttMain.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
+
+                // Remove the "patient_id" field from the document
+                deletedDocument.remove("patient_id");
+
+                // Insert the modified document into the AvailableTimes collection
+                availableTimesCollection.insertOne(deletedDocument);
+
+                System.out.println("Document deleted, patient_id removed, and migrated successfully.");
+            } else {
+                System.out.println("Object with this objectId is not found");
+            }
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
     }
 
     // IDEA: Refactor into MongoDBSchema.java:
