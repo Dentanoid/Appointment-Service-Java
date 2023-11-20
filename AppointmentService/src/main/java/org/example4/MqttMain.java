@@ -9,13 +9,15 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
-    String broker = "tcp://broker.hivemq.com:1883";  
+    String broker = "tcp://broker.hivemq.com:1883";
+    boolean hasInitiatedSubscribeTopic; // If we add more subscriptions: Extend into a boolean array
 
     // Specific for publish
     // String content;
 
     public MqttMain(String broker) {
         this.broker = broker;
+        hasInitiatedSubscribeTopic = false;
     }
 
     public void publishMessage(String topic, String content) {
@@ -56,7 +58,7 @@ public class MqttMain {
         String password = "Test123";
 
         // Can be refactored:
-        String clientid = "subscribe_client"; // "subscribe_client"
+        String clientid = "subscribe_client";
         int qos = 0;
 
         try {
@@ -75,11 +77,15 @@ public class MqttMain {
               }
 
                public void messageArrived(String topic, MqttMessage message) throws MqttException {
+                if (hasInitiatedSubscribeTopic) {
                    System.out.println("topic: " + topic);
                    System.out.println("Qos: " + message.getQos());
                    System.out.println("message content: " + new String(message.getPayload()));
 
-                   AppointmentService.manageRecievedPayload(topic, message.getPayload().toString());
+                   AppointmentService.manageRecievedPayload(topic, new String(message.getPayload()));
+                } else {
+                    hasInitiatedSubscribeTopic = true;
+                }
               }
 
                public void deliveryComplete(IMqttDeliveryToken token) {

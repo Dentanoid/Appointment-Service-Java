@@ -1,6 +1,7 @@
 package org.example4;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.Gson;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
@@ -15,6 +16,9 @@ import java.util.Iterator;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
+import org.example4.Schemas.Appointments;
+import org.example4.Schemas.AvailableTimes;
+import org.example4.Schemas.CollectionSchema;
 
 public class AppointmentService {
     private static MongoClient client;
@@ -37,15 +41,42 @@ public class AppointmentService {
 
     private static void initializeMqttConnection() {
         mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
-        mqttMain.subscribe("my/test/topic/appointment"); // TODO: Refactor into 'setSubscriptions()' in MqttMain.java
+
+        // Temporary sub-topics:
+        // 1) "sub/availabletime/create" --> Dentist (WORKS)
+
+        // 2) "sub/appointments/delete" --> Dentist
+        // 3) "sub/appointments/create" --> Patient (WORKS)
+        // 4) "sub/appointments/cancel" --> Patient
+
+        mqttMain.subscribe("sub/appointments/delete");
     }
 
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
+
+        // Dentist
         if (topic.contains("availabletime")) {
-            dentistCreateAvailableTime(payload);
-        } else if (topic.contains("appointment")) {
-            patientCreateAppointment(payload);
+            // Create available time
+            if (topic.contains("create")) {
+                dentistCreateAvailableTime(payload);
+            }
+        }
+        // Perform operations on already agreed timeslots between dentists and patients
+        else if (topic.contains("appointments"))
+        {
+            // Patient books appointment
+            if (topic.contains("create")) {
+                patientCreateAppointment(payload);
+            }
+            // Dentist deletes booked appointment
+            else if (topic.contains("delete")) {
+                dentistDeleteAppointment(payload);
+            }
+            // Patient cancels appointments
+            else if (topic.contains("cancel")) {
+                patientDeleteAppointment(payload);
+            }
         }
     }
 
@@ -65,56 +96,45 @@ public class AppointmentService {
     }
 
     // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void dentistCreateAvailableTime(String payload) { //Needs to be changed when implemented correctly
-        // TODO:
-        // 1) Verify that the topic containts 'dentist'
-
-        // Document availableTimesDocument = makeAvailableTimeDocument();
-        // availableTimesCollection.insertOne(availableTimesDocument);
-
-        Document availableTimesDocument = convertStringToDocument(payload);
+    private static void dentistCreateAvailableTime(String payload) {
+        Document availableTimesDocument = convertStringToDocument(payload, new AvailableTimes());
         availableTimesCollection.insertOne(availableTimesDocument);
 
-        mqttMain.publishMessage("test/publish/topic", availableTimesDocument.toJson());
+        mqttMain.publishMessage("pub/availabletime/create", availableTimesDocument.toJson());
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
     private static void patientCreateAppointment(String payload) {
-        // TODO:
-        // 1) Verify that the topic containts 'patient'
-        // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
-        // 3) Create appointment in 'Appointments' collection
-
-        // Document appointmentDocument = makeAppointmentsDocument();
-        // appointmentsCollection.insertOne(appointmentDocument);
-
-        Document appointmentDocument = convertStringToDocument(payload);
+        Document appointmentDocument = convertStringToDocument(payload, new Appointments());
         appointmentsCollection.insertOne(appointmentDocument);
-
-        mqttMain.publishMessage("test/publish/topic", appointmentDocument.toJson());
+        mqttMain.publishMessage("pub/appointments/create", appointmentDocument.toJson());
     }
 
     // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(String appointmentId) {
+    private static void dentistDeleteAppointment(String payload) {
+        // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
+
+        System.out.println(payload);
+
         try {
-            ObjectId appointmenObjectId = new ObjectId(appointmentId);
+            // ObjectId appointmenObjectId = new ObjectId(appointmentId);
+            ObjectId appointmenObjectId = new ObjectId(payload);
 
             Bson searchQuery = new Document("_id", appointmenObjectId);
             Document document = appointmentsCollection.findOneAndDelete(searchQuery);
 
             availableTimesCollection.findOneAndDelete(searchQuery);
 
-            mqttMain.publishMessage("grp20/notification/dentist/cancel", document.toJson());
+            mqttMain.publishMessage("pub/appointments/delete", document.toJson());
             System.out.println("Appointment deleted successfully.");
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
     }
 
-    private static void patientDeleteAppointment(String objectId) {
-        // Access User Service - patient collection - Change appointment attribute to null
-        // Migrate data from Appoinment to AvailableTimes
-        // Notify dentist
+    private static void patientDeleteAppointment(String payload) {
+        JsonNode jsonNode = Utils.deserialize(payload);
+        String objectId = jsonNode.get("_id").toString();
 
         ObjectId appointmentId;
 
@@ -153,32 +173,9 @@ public class AppointmentService {
     // IDEA: Refactor into MongoDBSchema.java:
 
     // Convert the payload-string to a document that can be stored in the database
-    private static Document convertStringToDocument(String payload) {
-        // 1. make 'payload' an object - Deserialize
-        // 2. Put the object's values when creating a new document
-
-        JsonNode payloadNodeObject = Utils.deserialize(payload);
-
-        return new Document("clinic_id", payloadNodeObject.get("clinic_id"))
-              .append("dentist_id", payloadNodeObject.get("dentist_id"))
-              .append("start_time", payloadNodeObject.get("start_time"))
-              .append("end_time", payloadNodeObject.get("end_time"));
+    private static Document convertStringToDocument(String payload, CollectionSchema classSchema) {
+        Gson gson = new Gson();
+        CollectionSchema schemaClass = gson.fromJson(payload, classSchema.getClass());
+        return schemaClass.getDocument();
     }
-
-    /*
-    private static Document makeAvailableTimeDocument() {
-        return new Document("clinic_id", "70")
-                .append("dentist_id",  "40")
-                .append("start_time", "10:30")
-                .append("end_time", "11:30");
-    }
-
-    private static Document makeAppointmentsDocument() {
-        return new Document("clinic_id", "78")
-            .append("dentist_id",  "6768")
-            .append("patient_id",  "92")
-            .append("start_time", "14:00")
-            .append("end_time", "15:00");
-    }
-    */
 }
