@@ -30,7 +30,7 @@ public class AppointmentService {
         
 
         // dentistDeleteAppointment(appointmentDatabase, "78", "92", "754");
-        // createAvailableTime(appointmentDatabase);
+        createAvailableTime(appointmentDatabase);
         // createAppointment(appointmentDatabase, mqttMain);
     }
 
