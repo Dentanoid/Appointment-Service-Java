@@ -103,12 +103,11 @@ public class AppointmentService {
         collection.findOneAndDelete(searchQuery);
     }
 
-    private static void patientDeleteAppointment(MongoDatabase appointmentDatabase, String objectId) {
+    private static void patientDeleteAppointment(String objectId) {
         // Access User Service - patient collection - Change appointment attribute to null
         // Migrate data from Appoinment to AvailableTimes
         // Notify dentist
-        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
-        MongoCollection<Document> publishCollection = appointmentDatabase.getCollection("AvailableTimes");
+
         ObjectId appointmentId;
 
         try {
@@ -121,7 +120,7 @@ public class AppointmentService {
         Bson searchQuery = new Document("_id", appointmentId);
 
         try {
-            Document foundDocument = collection.find(searchQuery).first();
+            Document foundDocument = appointmentsCollection.find(searchQuery).first();
 
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
@@ -132,7 +131,7 @@ public class AppointmentService {
                 deletedDocument.remove("patient_id");
 
                 // Insert the modified document into the AvailableTimes collection
-                publishCollection.insertOne(deletedDocument);
+                availableTimesCollection.insertOne(deletedDocument);
 
                 System.out.println("Document deleted, patient_id removed, and migrated successfully.");
             } else {
