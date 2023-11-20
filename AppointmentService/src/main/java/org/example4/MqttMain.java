@@ -9,8 +9,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
-    String broker = "tcp://broker.hivemq.com:1883";
-    // String topic = "my/test/topic"; // testing1239081239084    
+    String broker = "tcp://broker.hivemq.com:1883";  
 
     // Specific for publish
     // String content;
@@ -21,7 +20,7 @@ public class MqttMain {
 
     public void publishMessage(String topic, String content) {
     int qos             = 0; // 2
-    String broker       = "tcp://broker.hivemq.com:1883";
+    // String broker       = "tcp://broker.hivemq.com:1883";
     String clientId     = "JavaSampleClientId";
     MemoryPersistence persistence = new MemoryPersistence();
 
@@ -75,11 +74,12 @@ public class MqttMain {
                    System.out.println("connectionLost: " + cause.getMessage());
               }
 
-               public void messageArrived(String topic, MqttMessage message) {
+               public void messageArrived(String topic, MqttMessage message) throws MqttException {
                    System.out.println("topic: " + topic);
                    System.out.println("Qos: " + message.getQos());
                    System.out.println("message content: " + new String(message.getPayload()));
 
+                   AppointmentService.myTestMethod(topic, message.getPayload().toString());
               }
 
                public void deliveryComplete(IMqttDeliveryToken token) {
@@ -88,7 +88,7 @@ public class MqttMain {
 
           });
            client.connect(options);
-           client.subscribe(topic, qos);
+           client.subscribe(topic, qos);           
       } catch (Exception e) {
            e.printStackTrace();
       }
