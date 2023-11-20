@@ -21,17 +21,36 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 
 public class AppointmentService {
+    private static MongoClient client;
+    private static MongoDatabase appointmentDatabase;
+    private static MqttMain mqttMain;
+    private static MongoCollection<Document> availableTimesCollection;
+    private static MongoCollection<Document> appointmentsCollection;
+
     public static void main(String[] args) {
-        MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
-        MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
-        MqttMain mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
+        initializeDatabaseConnection();
+        initializeMqttConnection();
 
-        // mqttMain.subscribe("my/test/topic");
-        
+    }
 
-        // dentistDeleteAppointment(appointmentDatabase, "78", "92", "754");
-        createAvailableTime(appointmentDatabase);
-        // createAppointment(appointmentDatabase, mqttMain);
+    private static void initializeDatabaseConnection() {
+        client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
+        appointmentDatabase = client.getDatabase("AppointmentService");
+        availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
+        appointmentsCollection = appointmentDatabase.getCollection("Appointments");
+    }
+
+    private static void initializeMqttConnection() {
+        mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
+        mqttMain.subscribe("my/test/topic/appointment"); // TODO: Refactor into 'setSubscriptions()' in MqttMain.java
+    }
+
+    public static void myTestMethod(String topic, String payload) {
+        if (topic.contains("availabletime")) {
+            createAvailableTime(topic);
+        } else if (topic.contains("appointment")) {
+            createAppointment(topic);
+        }
     }
 
     // POST - Create new instance in database
@@ -50,28 +69,25 @@ public class AppointmentService {
     }
 
     // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void createAvailableTime(MongoDatabase appointmentDatabase) {
-        // TODO:
-        // 1) Verify that the topic containts 'dentist'
+    private static void createAvailableTime(String topic) {
 
-        MongoCollection<Document> availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
-        availableTimesCollection.insertOne(makeAvailableTimeDocument());
+        Document availableTimesDocument = makeAvailableTimeDocument();
+        availableTimesCollection.insertOne(availableTimesDocument);
+
+        mqttMain.publishMessage("test/publish/topic", availableTimesDocument.toJson());
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
-    private static void createAppointment(MongoDatabase appointmentDatabase, MqttMain mqttMain) {
+    private static void createAppointment(String topic) {
         // TODO:
         // 1) Verify that the topic containts 'patient'
         // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
         // 3) Create appointment in 'Appointments' collection
 
-
-        MongoCollection<Document> appointmentsCollection = appointmentDatabase.getCollection("Appointments");
         Document appointmentDocument = makeAppointmentsDocument();
         appointmentsCollection.insertOne(appointmentDocument);
 
-        mqttMain.publishMessage("my/test/topic", appointmentDocument.toJson());
-        // MqttPublishSample mqttPublishSample = new MqttPublishSample("my/test/topic", appointmentDocument.toJson());
+        mqttMain.publishMessage("test/publish/topic", appointmentDocument.toJson());
     }
 
     // IDEA: Refactor into MongoDBSchema.java:
@@ -85,7 +101,7 @@ public class AppointmentService {
 
     private static Document makeAppointmentsDocument() {
         return new Document("appointment_id", "78")
-            .append("dentist_id",  "754")
+            .append("dentist_id",  "6768")
             .append("patient_id",  "92")
             .append("start_time", "14:00")
             .append("end_time", "15:00");
@@ -102,60 +118,9 @@ public class AppointmentService {
 
     // Delete instance from 'AvailableTimes' collection
     private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId) {
-
-        
-        /*
-        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("Appointments"),
-                new String[][] {
-                        {"appointment_id", clinicId},
-                        {"dentist_id", dentistId}
-                }
-        );
-
-        System.out.println(foundDocuments);
-        */
-
         MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
         Bson searchQuery = new Document("appointment_id", clinicId)
             .append("dentist_id", dentistId);
         collection.findOneAndDelete(searchQuery);
-
-        /*
-        if (foundDocuments.size() > 0){
-            // collection.findOneAndDelete((Bson)foundDocuments);
-            collection.findOneAndDelete(searchQuery);
-        }
-        if (patientiD.length() > 0){
-            // notify notification service for patient and user
-        } else {
-            // maybe notify dentist client?
-        }
-        */
-    }
-
-    private static ArrayList<Document> searchQueryFunction(MongoCollection<Document> collection, String[][] queryConditions) {
-        BasicDBObject searchQuery = new BasicDBObject();
-        searchQuery.putAll(transformToMap(queryConditions));
-
-        MongoCursor<Document> cursor = collection.find(searchQuery).iterator();
-        ArrayList<Document> foundDocuments = new ArrayList<Document>();
-
-        while (cursor.hasNext()) {
-            foundDocuments.add(cursor.next());
-        }
-
-        return foundDocuments;
-    }
-
-    // Transform the 2D array to a hash map to match the allowed datatype parameters that 'BasicDBObject' supports
-    private static HashMap<String, String> transformToMap(String[][] queryConditions) {
-        HashMap<String, String> map = new HashMap<String, String>(queryConditions.length);
-
-        for (String[] mapping : queryConditions)
-        {
-            map.put(mapping[0], mapping[1]);
-        }
-
-        return map;
     }
 }
