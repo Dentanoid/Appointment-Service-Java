@@ -96,13 +96,13 @@ public class AppointmentService {
             ObjectId appointmenObjectId = new ObjectId(appointmentId);
 
             Bson searchQuery = new Document("_id", appointmenObjectId);
-            collection.findOneAndDelete(searchQuery);
+            Document document = collection.findOneAndDelete(searchQuery);
 
             MongoCollection<Document> availableCollection = appointmentDatabase.getCollection("AvailableTimes");
             availableCollection.findOneAndDelete(searchQuery);
 
+            mqttMain.publishMessage("grp20/notification/dentist/cancel", document.toJson());
             System.out.println("Appointment deleted successfully.");
-
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
