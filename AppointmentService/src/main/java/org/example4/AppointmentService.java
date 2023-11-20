@@ -69,7 +69,9 @@ public class AppointmentService {
     }
 
     // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void createAvailableTime(String topic) {
+    private static void dentistCreateAvailableTime(Document payload) { //Needs to be changed when implemented correctly
+        // TODO:
+        // 1) Verify that the topic containts 'dentist'
 
         Document availableTimesDocument = makeAvailableTimeDocument();
         availableTimesCollection.insertOne(availableTimesDocument);
@@ -78,7 +80,7 @@ public class AppointmentService {
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
-    private static void createAppointment(String topic) {
+    private static void patientCreateAppointment(Document payload) {
         // TODO:
         // 1) Verify that the topic containts 'patient'
         // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
@@ -90,37 +92,43 @@ public class AppointmentService {
         mqttMain.publishMessage("test/publish/topic", appointmentDocument.toJson());
     }
 
+    // Delete instance from 'AvailableTimes' collection
+    private static void dentistDeleteAppointment(String appointmentId) {
+        try {
+            ObjectId appointmenObjectId = new ObjectId(appointmentId);
+
+            Bson searchQuery = new Document("_id", appointmenObjectId);
+            Document document = appointmentsCollection.findOneAndDelete(searchQuery);
+
+            availableTimesCollection.findOneAndDelete(searchQuery);
+
+            mqttMain.publishMessage("grp20/notification/dentist/cancel", document.toJson());
+            System.out.println("Appointment deleted successfully.");
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
+    }
+
+    private static void patientDeleteAppointment() {
+        // Access User Service - patient collection - Change appointment attribute to null
+        // Migrate data from Appoinment to AvailableTimes
+        // Notify dentist
+    }
+
     // IDEA: Refactor into MongoDBSchema.java:
 
     private static Document makeAvailableTimeDocument() {
         return new Document("clinic_id", "70")
-            .append("dentist_id",  "40")
-            .append("start_time", "10:30")
-            .append("end_time", "11:30");
+                .append("dentist_id",  "40")
+                .append("start_time", "10:30")
+                .append("end_time", "11:30");
     }
 
     private static Document makeAppointmentsDocument() {
-        return new Document("appointment_id", "78")
+        return new Document("clinic_id", "78")
             .append("dentist_id",  "6768")
             .append("patient_id",  "92")
             .append("start_time", "14:00")
             .append("end_time", "15:00");
-    }
-
-    // Delete instance from 'AvailableTimes' collection
-    private static void deleteOne(MongoCollection<Document> collection, String clinicId, String dentistId, String startTime) {
-        // Perform search query to find document to delete
-        // Document test13;
-        // collection.findOneAndDelete(test13);
-        // searchQueryFunction(collection, null)
-        // collection.findOneAndDelete()
-    }
-
-    // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId) {
-        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
-        Bson searchQuery = new Document("appointment_id", clinicId)
-            .append("dentist_id", dentistId);
-        collection.findOneAndDelete(searchQuery);
     }
 }
