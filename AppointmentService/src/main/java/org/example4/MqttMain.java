@@ -79,7 +79,7 @@ public class MqttMain {
                    System.out.println("Qos: " + message.getQos());
                    System.out.println("message content: " + new String(message.getPayload()));
 
-                   AppointmentService.myTestMethod(topic, message.getPayload().toString());
+                   AppointmentService.manageRecievedPayload(topic, message.getPayload().toString());
               }
 
                public void deliveryComplete(IMqttDeliveryToken token) {

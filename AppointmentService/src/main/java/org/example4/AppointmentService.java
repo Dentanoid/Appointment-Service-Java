@@ -31,7 +31,6 @@ public class AppointmentService {
     public static void main(String[] args) {
         initializeDatabaseConnection();
         initializeMqttConnection();
-
     }
 
     private static void initializeDatabaseConnection() {
@@ -46,7 +45,8 @@ public class AppointmentService {
         mqttMain.subscribe("my/test/topic/appointment"); // TODO: Refactor into 'setSubscriptions()' in MqttMain.java
     }
 
-    public static void myTestMethod(String topic, String payload) {
+    // Once this service has recieved the payload, it has to be managed
+    public static void manageRecievedPayload(String topic, String payload) {
         if (topic.contains("availabletime")) {
             dentistCreateAvailableTime(payload);
         } else if (topic.contains("appointment")) {
