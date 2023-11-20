@@ -93,16 +93,14 @@ public class AppointmentService {
     }
 
     // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String appointmentId) {
+    private static void dentistDeleteAppointment(String appointmentId) {
         try {
-            MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
             ObjectId appointmenObjectId = new ObjectId(appointmentId);
 
             Bson searchQuery = new Document("_id", appointmenObjectId);
-            Document document = collection.findOneAndDelete(searchQuery);
+            Document document = appointmentsCollection.findOneAndDelete(searchQuery);
 
-            MongoCollection<Document> availableCollection = appointmentDatabase.getCollection("AvailableTimes");
-            availableCollection.findOneAndDelete(searchQuery);
+            availableTimesCollection.findOneAndDelete(searchQuery);
 
             mqttMain.publishMessage("grp20/notification/dentist/cancel", document.toJson());
             System.out.println("Appointment deleted successfully.");
