@@ -42,9 +42,9 @@ public class AppointmentService {
 
     public static void myTestMethod(String topic, String payload) {
         if (topic.contains("availabletime")) {
-            createAvailableTime(topic);
+            dentistCreateAvailableTime(new Document());
         } else if (topic.contains("appointment")) {
-            createAppointment(topic);
+            patientCreateAppointment(new Document());
         }
     }
 
@@ -125,7 +125,7 @@ public class AppointmentService {
 
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
-                Document deletedDocument = collection.findOneAndDelete(searchQuery);
+                Document deletedDocument = appointmentsCollection.findOneAndDelete(searchQuery);
                 mqttMain.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
 
                 // Remove the "patient_id" field from the document
@@ -153,13 +153,11 @@ public class AppointmentService {
     }
 
     private static Document makeAppointmentsDocument() {
-        return new Document("appointment_id", "78")
         return new Document("clinic_id", "78")
             .append("dentist_id",  "6768")
             .append("patient_id",  "92")
             .append("start_time", "14:00")
             .append("end_time", "15:00");
 
-    }
     }
 }
