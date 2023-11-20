@@ -91,36 +91,21 @@ public class AppointmentService {
     }
 
     // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId, String startTime) {
+    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String appointmentId) {
+        try {
+            MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+            ObjectId appointmenObjectId = new ObjectId(appointmentId);
 
-       /*  ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
-                new String[][] {
-                        {"clinic_id", clinicId},
-                        {"dentist_id", dentistId}
-                }
-        );
-        */
+            Bson searchQuery = new Document("_id", appointmenObjectId);
+            collection.findOneAndDelete(searchQuery);
 
-        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
-        Bson searchQuery = new Document("appointment_id", clinicId)
-                .append("dentist_id", dentistId);
-        collection.findOneAndDelete(searchQuery);
+            MongoCollection<Document> availableCollection = appointmentDatabase.getCollection("AvailableTimes");
+            availableCollection.findOneAndDelete(searchQuery);
 
-        MongoCollection<Document> availableCollection = appointmentDatabase.getCollection("AvailableTimes");
-        Bson searchQueryAvailable = new Document("appointment_id", clinicId)
-                .append("dentist_id", dentistId);
-        availableCollection.findOneAndDelete(searchQueryAvailable);
+            System.out.println("Appointment deleted successfully.");
 
-       /*  if (foundDocuments.size() > 0){
-            collection.findOneAndDelete(foundDocuments);
-        }
-        */
-        if (patientiD!=null){
-            // notify notification service for patient and user
-            System.out.println("Notify patient deleted appointment");
-        } else {
-            // maybe notify dentist client?
-            System.out.println("No patients, deleted appointment");
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
         }
     }
 
