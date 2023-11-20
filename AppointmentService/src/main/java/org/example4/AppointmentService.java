@@ -19,35 +19,14 @@ public class AppointmentService {
     public static void main(String[] args) {
         MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
+        MqttMain mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
 
-        //patientCreateAppointment(appointmentDatabase);
-        patientDeleteAppointment(appointmentDatabase, "655a733a6cf3c57cf7577a6a");
-       //dentistDeleteAppointment(appointmentDatabase, "80", "91", "75", "start_time");
+        // mqttMain.subscribe("my/test/topic");
+        
 
-        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
-                new String[][] {
-                        {"clinic_id", "70"},
-                        {"dentist_id", "64"}
-                }
-        );
-
-        System.out.println(foundDocuments);
-
-        // createAvailableTime(appointmentDatabase);
-        // createAppointment(appointmentDatabase);
-
-
-        // TODO:
-        // 1) Research on how to query the collection --> Commands
-        //      - DELETE (appointment_id) operation --> cancel_appointment
-
-        // 2) Store the json-subscription recieved in MqttMain in DB
-
-
-        // 3) Refactor into a static MongoDBUtils.java class, and possibly refactor into 'MongoDBSchema' that creates document-collection formats
-
-
-        // MQTTHandler mqttHandler = new MQTTHandler();
+        // dentistDeleteAppointment(appointmentDatabase, "78", "92", "754");
+        createAvailableTime(appointmentDatabase);
+        // createAppointment(appointmentDatabase, mqttMain);
     }
 
     // POST - Create new instance in database
@@ -83,7 +62,11 @@ public class AppointmentService {
 
 
         MongoCollection<Document> appointmentsCollection = appointmentDatabase.getCollection("Appointments");
-        appointmentsCollection.insertOne(makeAppointmentsDocument());
+        Document appointmentDocument = makeAppointmentsDocument();
+        appointmentsCollection.insertOne(appointmentDocument);
+
+        mqttMain.publishMessage("my/test/topic", appointmentDocument.toJson());
+        // MqttPublishSample mqttPublishSample = new MqttPublishSample("my/test/topic", appointmentDocument.toJson());
     }
 
     // Delete instance from 'AvailableTimes' collection
@@ -118,10 +101,10 @@ public class AppointmentService {
         }
 
         Bson searchQuery = new Document("_id", appointmentId);
-    
+
         try {
             Document foundDocument = collection.find(searchQuery).first();
-    
+
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
                 Document deletedDocument = collection.findOneAndDelete(searchQuery);
@@ -129,7 +112,7 @@ public class AppointmentService {
 
                 // Remove the "patient_id" field from the document
                 deletedDocument.remove("patient_id");
-    
+
                 // Insert the modified document into the AvailableTimes collection
                 publishCollection.insertOne(deletedDocument);
 
