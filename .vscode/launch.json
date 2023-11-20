@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "MqttMain",
+            "request": "launch",
+            "mainClass": "org.example4.MqttMain",
+            "projectName": "AppointmentService"
+        },
+        {
+            "type": "java",
+            "name": "Example",
+            "request": "launch",
+            "mainClass": "org.example4.Example",
+            "projectName": "AppointmentService"
+        },
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "AppointmentService",
+            "request": "launch",
+            "mainClass": "org.example4.AppointmentService",
+            "projectName": "AppointmentService"
+        },
+        {
+            "type": "java",
+            "name": "MqttPublishSample",
+            "request": "launch",
+            "mainClass": "org.example4.MqttPublishSample",
+            "projectName": "AppointmentService"
+        },
+        {
+            "type": "java",
+            "name": "MyMqttMain",
+            "request": "launch",
+            "mainClass": "org.example4.MyMqttMain",
+            "projectName": "AppointmentService"
+        },
+        {
+            "type": "java",
+            "name": "TopicSubscriber",
+            "request": "launch",
+            "mainClass": "org.example4.TopicSubscriber",
+            "projectName": "AppointmentService",
+            "args": "tcp://broker.hivemq.com:1883 Cluster1 Cluster123"
+        }
+    ]
+}
