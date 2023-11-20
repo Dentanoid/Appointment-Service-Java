@@ -64,7 +64,7 @@ public class AppointmentService {
     }
 
     // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void dentistCreateAvailableTime(String topic) {
+    private static void dentistCreateAvailableTime(Document payload) { //Needs to be changed when implemented correctly
         // TODO:
         // 1) Verify that the topic containts 'dentist'
 
@@ -88,19 +88,20 @@ public class AppointmentService {
     }
 
     // Delete instance from 'AvailableTimes' collection
-    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId, String startTime) {
+    private static void dentistDeleteAppointment(String appointmentId) {
+        try {
+            ObjectId appointmenObjectId = new ObjectId(appointmentId);
 
-        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
-                new String[][] {
-                        {"clinic_id", clinicId},
-                        {"dentist_id", dentistId}
-                }
-        );
+            Bson searchQuery = new Document("_id", appointmenObjectId);
+            Document document = appointmentsCollection.findOneAndDelete(searchQuery);
 
-        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
-        Bson searchQuery = new Document("appointment_id", clinicId)
-                .append("dentist_id", dentistId);
-        collection.findOneAndDelete(searchQuery);
+            availableTimesCollection.findOneAndDelete(searchQuery);
+
+            mqttMain.publishMessage("grp20/notification/dentist/cancel", document.toJson());
+            System.out.println("Appointment deleted successfully.");
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
     }
 
     private static void patientDeleteAppointment(String objectId) {
@@ -153,10 +154,12 @@ public class AppointmentService {
 
     private static Document makeAppointmentsDocument() {
         return new Document("appointment_id", "78")
+        return new Document("clinic_id", "78")
             .append("dentist_id",  "6768")
             .append("patient_id",  "92")
             .append("start_time", "14:00")
             .append("end_time", "15:00");
 
+    }
     }
 }
