@@ -25,13 +25,13 @@ public class Utils {
     }
 
     // Serialize: String --> Object
-    public static Object deserialize(String filePath) { // The file accessed by 'filePath' is a placeholder that will be replaced by MQTT connections
+    public static JsonNode deserialize(String payload) { // The file accessed by 'filePath' is a placeholder that will be replaced by MQTT connections
         // Deserialization
         try
         {
             ObjectMapper objectMapper = new ObjectMapper();
 
-            JsonNode jsonNodeObj = objectMapper.readTree(new File(filePath));
+            JsonNode jsonNodeObj = objectMapper.readTree(payload);
             return jsonNodeObj;
         }
         catch (IOException exception)
@@ -39,6 +39,6 @@ public class Utils {
             exception.printStackTrace();
         }
 
-        return -1;
+        return null;
     }
 }
