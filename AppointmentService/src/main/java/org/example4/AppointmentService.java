@@ -108,21 +108,36 @@ public class AppointmentService {
         // Notify dentist
         MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
         MongoCollection<Document> publishCollection = appointmentDatabase.getCollection("AvailableTimes");
-        ObjectId appointmentId = new ObjectId(objectId);
+        ObjectId appointmentId;
+
+        try {
+            appointmentId = new ObjectId(objectId);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid ObjectId format");
+            return;
+        }
+
         Bson searchQuery = new Document("_id", appointmentId);
     
-        Document foundDocument = collection.find(searchQuery).first();
+        try {
+            Document foundDocument = collection.find(searchQuery).first();
     
-        if (foundDocument != null) {
-            // Delete from the Appointments collection and get the document
-            Document deletedDocument = collection.findOneAndDelete(searchQuery);
-            deletedDocument.remove("patient_id");
-            // Insert the deleted document into the AvailableTimes collection
-            publishCollection.insertOne(deletedDocument);
+            if (foundDocument != null) {
+                // Delete from the Appointments collection and get the document
+                Document deletedDocument = collection.findOneAndDelete(searchQuery);
     
-            System.out.println("Document deleted and migrated successfully.");
-        } else {
-            System.out.println("Object with this objectId is not found");
+                // Remove the "patient_id" field from the document
+                deletedDocument.remove("patient_id");
+    
+                // Insert the modified document into the AvailableTimes collection
+                publishCollection.insertOne(deletedDocument);
+    
+                System.out.println("Document deleted, patient_id removed, and migrated successfully.");
+            } else {
+                System.out.println("Object with this objectId is not found");
+            }
+        } catch (Exception e) {
+            System.out.println("An error occurred: " + e.getMessage());
         }
     }
 
