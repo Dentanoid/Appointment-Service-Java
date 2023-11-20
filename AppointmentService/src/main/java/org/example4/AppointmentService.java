@@ -125,13 +125,14 @@ public class AppointmentService {
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
                 Document deletedDocument = collection.findOneAndDelete(searchQuery);
-    
+                mqttMain.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
+
                 // Remove the "patient_id" field from the document
                 deletedDocument.remove("patient_id");
     
                 // Insert the modified document into the AvailableTimes collection
                 publishCollection.insertOne(deletedDocument);
-    
+
                 System.out.println("Document deleted, patient_id removed, and migrated successfully.");
             } else {
                 System.out.println("Object with this objectId is not found");
