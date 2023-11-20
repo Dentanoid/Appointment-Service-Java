@@ -24,7 +24,10 @@ public class AppointmentService {
     public static void main(String[] args) {
         MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
+        MqttMain mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
 
+        // mqttMain.subscribe("my/test/topic");
+        
         patientCreateAppointment(appointmentDatabase);
         // dentistDeleteAppointment(appointmentDatabase.getCollection("Appointments"), "client_id", "patient_id", "754", "start_time")
 
@@ -41,17 +44,9 @@ public class AppointmentService {
         // createAppointment(appointmentDatabase);
 
 
-        // TODO:
-        // 1) Research on how to query the collection --> Commands
-        //      - DELETE (appointment_id) operation --> cancel_appointment
-
-        // 2) Store the json-subscription recieved in MqttMain in DB
-
-
-        // 3) Refactor into a static MongoDBUtils.java class, and possibly refactor into 'MongoDBSchema' that creates document-collection formats
-
-
-        // MQTTHandler mqttHandler = new MQTTHandler();
+        // dentistDeleteAppointment(appointmentDatabase, "78", "92", "754");
+        createAvailableTime(appointmentDatabase);
+        // createAppointment(appointmentDatabase, mqttMain);
     }
 
     // POST - Create new instance in database
@@ -87,7 +82,11 @@ public class AppointmentService {
 
 
         MongoCollection<Document> appointmentsCollection = appointmentDatabase.getCollection("Appointments");
-        appointmentsCollection.insertOne(makeAppointmentsDocument());
+        Document appointmentDocument = makeAppointmentsDocument();
+        appointmentsCollection.insertOne(appointmentDocument);
+
+        mqttMain.publishMessage("my/test/topic", appointmentDocument.toJson());
+        // MqttPublishSample mqttPublishSample = new MqttPublishSample("my/test/topic", appointmentDocument.toJson());
     }
 
     // Delete instance from 'AvailableTimes' collection
