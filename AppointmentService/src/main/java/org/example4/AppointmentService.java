@@ -24,31 +24,14 @@ public class AppointmentService {
     public static void main(String[] args) {
         MongoClient client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         MongoDatabase appointmentDatabase = client.getDatabase("AppointmentService");
+        MqttMain mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
 
-        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("AvailableTimes"),
-            new String[][] {
-                {"clinic_id", "70"},
-                {"dentist_id", "64"}
-            }
-        );
+        // mqttMain.subscribe("my/test/topic");
+        
 
-        System.out.println(foundDocuments);
-
+        // dentistDeleteAppointment(appointmentDatabase, "78", "92", "754");
         // createAvailableTime(appointmentDatabase);
-        // createAppointment(appointmentDatabase);
-        
-
-        // TODO:
-        // 1) Research on how to query the collection --> Commands
-        //      - DELETE (appointment_id) operation --> cancel_appointment
-
-        // 2) Store the json-subscription recieved in MqttMain in DB
-
-
-        // 3) Refactor into a static MongoDBUtils.java class, and possibly refactor into 'MongoDBSchema' that creates document-collection formats
-
-        
-        // MQTTHandler mqttHandler = new MQTTHandler();
+        // createAppointment(appointmentDatabase, mqttMain);
     }
 
     // POST - Create new instance in database
@@ -76,7 +59,7 @@ public class AppointmentService {
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
-    private static void createAppointment(MongoDatabase appointmentDatabase) {
+    private static void createAppointment(MongoDatabase appointmentDatabase, MqttMain mqttMain) {
         // TODO:
         // 1) Verify that the topic containts 'patient'
         // 2) Delete corresponding appointment-data-instance from 'AvailableTimes' collection
@@ -84,7 +67,11 @@ public class AppointmentService {
 
 
         MongoCollection<Document> appointmentsCollection = appointmentDatabase.getCollection("Appointments");
-        appointmentsCollection.insertOne(makeAppointmentsDocument());
+        Document appointmentDocument = makeAppointmentsDocument();
+        appointmentsCollection.insertOne(appointmentDocument);
+
+        mqttMain.publishMessage("my/test/topic", appointmentDocument.toJson());
+        // MqttPublishSample mqttPublishSample = new MqttPublishSample("my/test/topic", appointmentDocument.toJson());
     }
 
     // IDEA: Refactor into MongoDBSchema.java:
@@ -107,7 +94,43 @@ public class AppointmentService {
     // Delete instance from 'AvailableTimes' collection
     private static void deleteOne(MongoCollection<Document> collection, String clinicId, String dentistId, String startTime) {
         // Perform search query to find document to delete
-        // collection.findOneAndDelete(eq("clinic_id", clinicId));
+        // Document test13;
+        // collection.findOneAndDelete(test13);
+        // searchQueryFunction(collection, null)
+        // collection.findOneAndDelete()
+    }
+
+    // Delete instance from 'AvailableTimes' collection
+    private static void dentistDeleteAppointment(MongoDatabase appointmentDatabase, String clinicId, String patientiD, String dentistId) {
+
+        
+        /*
+        ArrayList<Document> foundDocuments = searchQueryFunction(appointmentDatabase.getCollection("Appointments"),
+                new String[][] {
+                        {"appointment_id", clinicId},
+                        {"dentist_id", dentistId}
+                }
+        );
+
+        System.out.println(foundDocuments);
+        */
+
+        MongoCollection<Document> collection = appointmentDatabase.getCollection("Appointments");
+        Bson searchQuery = new Document("appointment_id", clinicId)
+            .append("dentist_id", dentistId);
+        collection.findOneAndDelete(searchQuery);
+
+        /*
+        if (foundDocuments.size() > 0){
+            // collection.findOneAndDelete((Bson)foundDocuments);
+            collection.findOneAndDelete(searchQuery);
+        }
+        if (patientiD.length() > 0){
+            // notify notification service for patient and user
+        } else {
+            // maybe notify dentist client?
+        }
+        */
     }
 
     private static ArrayList<Document> searchQueryFunction(MongoCollection<Document> collection, String[][] queryConditions) {
