@@ -3,13 +3,13 @@ package org.example4.TopicManagement;
 public class Patient implements Client {
     private String topic;
 
-    public Patient(String topic) {
+    public Patient(String topic, String payload) {
         this.topic = topic;
-        executeRequestedOperation(topic);
+        executeRequestedOperation(topic, payload);
     }
 
     @Override
-    public void createAppointment() {
+    public void createAppointment(String payload) {
 
     }
 
@@ -19,11 +19,11 @@ public class Patient implements Client {
     }
 
     @Override
-    public void executeRequestedOperation(String topic) {
+    public void executeRequestedOperation(String topic, String payload) {
         String operation = decodeRequestedOperation(topic);
 
         if (operation == "create") {
-            createAppointment();
+            createAppointment(payload);
         } else {
             deleteAppointment();
         }

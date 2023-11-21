@@ -13,35 +13,22 @@ import org.example4.Schemas.AvailableTimes;
 import org.example4.TopicManagement.TopicManager;
 
 public class AppointmentService {
-    public static MqttMain mqttMain;
+    // public static MqttManager mqttMain;
 
     public static void main(String[] args) {
         DatabaseManager.initializeDatabaseConnection();
-        initializeMqttConnection();
-    }
-
-    private static void initializeMqttConnection() {
-        mqttMain = new MqttMain("tcp://broker.hivemq.com:1883");
-
-        // Temporary sub-topics:
-        // 1) "sub/availabletime/create" --> Dentist (WORKS)
-
-        // 2) "sub/appointments/delete" --> Dentist
-        // 3) "sub/appointments/create" --> Patient (WORKS)
-        // 4) "sub/appointments/cancel" --> Patient
-
-        mqttMain.subscribe("sub/appointments/create");
-        // mqttMain.subscribe("sub/availabletime/create");
+        MqttManager.initializeSubscriptions();
     }
 
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
-        // TopicManager topicManager = new TopicManager(topic);
+        TopicManager topicManager = new TopicManager(topic, payload);
         // topicManager.client.executeRequestedOperation(topic);
 
         // topicManager.client.createAppointment();
         // topicManager.client.deleteAppointment();
 
+        /*
         if (topic.contains("availabletime")) {
             // Dentist creates available time
             if (topic.contains("create")) {
@@ -64,6 +51,7 @@ public class AppointmentService {
                 patientDeleteAppointment(payload);
             }
         }
+        */
     }
 
     // POST - Create new instance in database
@@ -89,7 +77,7 @@ public class AppointmentService {
         Document availableTimesDocument = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());        
         DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, availableTimesDocument);
 
-        mqttMain.publishMessage("pub/availabletime/create", availableTimesDocument.toJson());
+        MqttManager.getMqttManager().publishMessage("pub/availabletime/create", availableTimesDocument.toJson());
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
@@ -100,7 +88,7 @@ public class AppointmentService {
         Document appointmentDocument = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
         DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, appointmentDocument);
 
-        mqttMain.publishMessage("pub/appointments/create", appointmentDocument.toJson());
+        MqttManager.getMqttManager().publishMessage("pub/appointments/create", appointmentDocument.toJson());
     }
 
     // Delete instance from 'AvailableTimes' collection
@@ -121,7 +109,7 @@ public class AppointmentService {
 
             DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
 
-            mqttMain.publishMessage("pub/appointments/delete", document.toJson());
+            MqttManager.getMqttManager().publishMessage("pub/appointments/delete", document.toJson());
             System.out.println("Appointment deleted successfully.");
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
@@ -149,7 +137,7 @@ public class AppointmentService {
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
                 Document deletedDocument = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
-                mqttMain.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
+                MqttManager.getMqttManager().publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
 
                 // Remove the "patient_id" field from the document
                 deletedDocument.remove("patient_id");

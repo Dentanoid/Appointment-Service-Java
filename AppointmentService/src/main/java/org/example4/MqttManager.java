@@ -10,16 +10,25 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class MqttMain {
-    String broker;
+public class MqttManager {
+    private static MqttManager mqttManager;
+    private static String broker = "tcp://broker.hivemq.com:1883";
+
     int qos = 0;
 
-    public MqttMain(String broker) {
-        this.broker = broker;
+    public static void initializeSubscriptions() {
+        mqttManager = new MqttManager();
+        mqttManager.subscribe("sub/dentist/availabletime/create");    
+        // mqttManagr.subscribe("sub/availabletime/create"); // Add a new subscription
+    }
+
+    public static MqttManager getMqttManager() {
+        return mqttManager;
     }
 
     public void publishMessage(String topic, String content) {
-    String clientId     = "JavaSampleClientId";
+    // String clientId     = "JavaSampleClientId";
+    String clientId = MqttClient.generateClientId();
     MemoryPersistence persistence = new MemoryPersistence();
 
         try {

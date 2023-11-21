@@ -1,7 +1,7 @@
 package org.example4.TopicManagement;
 
 public interface Client {
-    public void createAppointment();
+    public void createAppointment(String payload);
     public void deleteAppointment();
-    public void executeRequestedOperation(String topic);
+    public void executeRequestedOperation(String topic, String payload);
 }
