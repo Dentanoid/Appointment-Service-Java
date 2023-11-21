@@ -1,17 +1,21 @@
 package org.example4.TopicManagement;
 
 public class Patient implements Client {
+    private String topic;
+
+    public Patient(String topic) {
+        this.topic = topic;
+        executeRequestedOperation(topic);
+    }
 
     @Override
     public void createAppointment() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'createAppointment'");
+
     }
 
     @Override
     public void deleteAppointment() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteAppointment'");
+
     }
 
     @Override

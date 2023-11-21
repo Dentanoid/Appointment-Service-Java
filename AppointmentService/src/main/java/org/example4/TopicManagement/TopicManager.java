@@ -1,19 +1,17 @@
 package org.example4.TopicManagement;
 
 public class TopicManager implements DataDomain {
-    private String topic;
     public Client client;
 
     public TopicManager(String topic) {
-        this.topic = topic;
         client = getClient(topic);
     }
 
     public Client getClient(String topic) {
         if (topic.contains("dentist")) {
-            return new Dentist();
+            return new Dentist(topic);
         }
-        return new Patient();
+        return new Patient(topic);
     }
 
     @Override

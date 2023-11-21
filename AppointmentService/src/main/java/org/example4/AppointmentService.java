@@ -30,16 +30,17 @@ public class AppointmentService {
         // 3) "sub/appointments/create" --> Patient (WORKS)
         // 4) "sub/appointments/cancel" --> Patient
 
-        mqttMain.subscribe("sub/availabletime/create");
+        mqttMain.subscribe("sub/appointments/create");
+        // mqttMain.subscribe("sub/availabletime/create");
     }
 
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
         // TopicManager topicManager = new TopicManager(topic);
         // topicManager.client.executeRequestedOperation(topic);
+
         // topicManager.client.createAppointment();
         // topicManager.client.deleteAppointment();
-
 
         if (topic.contains("availabletime")) {
             // Dentist creates available time
