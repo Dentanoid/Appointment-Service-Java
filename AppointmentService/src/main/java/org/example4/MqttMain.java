@@ -1,6 +1,7 @@
 package org.example4;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -11,12 +12,28 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
+    public static HashMap<String, MqttMain> subscriptionManagers; // Format: // <"subTopic", new MqttMain Object>
     private static final String broker = "tcp://broker.hivemq.com:1883";
+
+    private static final String[] subscriptions = {
+        "sub/patient/appointments/create7",
+        "sub/patient/appointments/create8",
+        "sub/patient/appointments/create9"
+    };
 
     int qos = 0;
 
+    // Create new instances of MqttMain that are mapped to their respective topics
+    public static void initializeMqttConnection() {
+        subscriptionManagers = new HashMap<String, MqttMain>();
+        
+        for (int i = 0; i < subscriptions.length; i++) {
+            subscriptionManagers.put(subscriptions[i], new MqttMain());
+            subscriptionManagers.get(subscriptions[i]).subscribe(subscriptions[i]);
+        }
+    }
+
     public void publishMessage(String topic, String content) {
-    // String clientId     = "JavaSampleClientId";
     String clientId = MqttClient.generateClientId();
     MemoryPersistence persistence = new MemoryPersistence();
 
@@ -51,7 +68,6 @@ public class MqttMain {
     public void subscribe(String topic) {
         String username = "Test";
         String password = "Test123";
-        // String clientid = "subscribe_client";
         String clientid = MqttClient.generateClientId();
 
         try {

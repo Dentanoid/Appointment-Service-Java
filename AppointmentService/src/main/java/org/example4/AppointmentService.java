@@ -18,12 +18,7 @@ public class AppointmentService {
 
     public static void main(String[] args) {
         DatabaseManager.initializeDatabaseConnection();
- 
-        mqttManager1 = new MqttMain();
-        mqttManager1.subscribe("sub/patient/appointments/create5"); // "sub/patient/appointments/create", "sub/dentist/availabletime/create"
-
-        mqttManager2 = new MqttMain();
-        mqttManager2.subscribe("sub/patient/appointments/create6");
+        MqttMain.initializeMqttConnection();
     }
 
     // Once this service has recieved the payload, it has to be managed
