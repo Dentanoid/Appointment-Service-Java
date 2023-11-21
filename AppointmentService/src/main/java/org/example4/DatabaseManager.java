@@ -1,15 +1,18 @@
 package org.example4;
 
+import java.util.Iterator;
+
 import org.bson.Document;
 import org.example4.Schemas.CollectionSchema;
 
 import com.google.gson.Gson;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-public class DatabaseManager { // TODO: Create singleton
+public class DatabaseManager {
     public static MongoClient client;
     public static MongoDatabase appointmentDatabase;    
     public static MongoCollection<Document> availableTimesCollection;
@@ -29,7 +32,18 @@ public class DatabaseManager { // TODO: Create singleton
         return schemaClass.getDocument();
     }
 
+    // POST - Create new instance in a collection
     public static void saveDocumentInCollection(MongoCollection<Document> collection, Document doc) {
         collection.insertOne(doc);
+    }
+
+    // READ - Get all instances in a collection
+    private static void printCollection(MongoCollection<Document> collection) {
+        FindIterable<Document> documents = collection.find();
+        Iterator<Document> it = documents.iterator();
+        while (it.hasNext()) {
+            Document doc = it.next();
+            System.out.println(doc.toJson());
+        }
     }
 }

@@ -15,10 +15,10 @@ public class MqttMain {
     public static HashMap<String, MqttMain> subscriptionManagers; // Format: // <"subTopic", new MqttMain Object>
     private static final String broker = "tcp://broker.hivemq.com:1883";
 
+    // Add a subscription by adding a string element here
     private static final String[] subscriptions = {
-        "sub/patient/appointments/create7",
-        "sub/patient/appointments/create8",
-        "sub/patient/appointments/create9"
+        "sub/patient/appointments/create",
+        "sub/dentist/availabletimes/create"
     };
 
     int qos = 0;
