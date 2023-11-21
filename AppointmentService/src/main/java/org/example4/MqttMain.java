@@ -1,5 +1,7 @@
 package org.example4;
 
+import java.util.ArrayList;
+
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -9,20 +11,14 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
-    String broker = "tcp://broker.hivemq.com:1883";
-    boolean hasInitiatedSubscribeTopic; // If we add more subscriptions: Extend into a boolean array
-
-    // Specific for publish
-    // String content;
+    String broker;
+    int qos = 0;
 
     public MqttMain(String broker) {
         this.broker = broker;
-        hasInitiatedSubscribeTopic = false;
     }
 
     public void publishMessage(String topic, String content) {
-    int qos             = 0; // 2
-    // String broker       = "tcp://broker.hivemq.com:1883";
     String clientId     = "JavaSampleClientId";
     MemoryPersistence persistence = new MemoryPersistence();
 
@@ -53,13 +49,10 @@ public class MqttMain {
     }
 
     public void subscribe(String topic) {
-        // Specific for subscribe
-        String username = "Test"; // emqx
+        String username = "Test";
         String password = "Test123";
-
-        // Can be refactored:
-        String clientid = "subscribe_client";
-        int qos = 0;
+        // String clientid = "subscribe_client";
+        String clientid = MqttClient.generateClientId();
 
         try {
            MqttClient client = new MqttClient(broker, clientid, new MemoryPersistence());
@@ -77,15 +70,11 @@ public class MqttMain {
               }
 
                public void messageArrived(String topic, MqttMessage message) throws MqttException {
-                if (hasInitiatedSubscribeTopic) {
-                   System.out.println("topic: " + topic);
-                   System.out.println("Qos: " + message.getQos());
-                   System.out.println("message content: " + new String(message.getPayload()));
+                System.out.println("topic: " + topic);
+                System.out.println("Qos: " + message.getQos());
+                System.out.println("message content: " + new String(message.getPayload()));
 
-                   AppointmentService.manageRecievedPayload(topic, new String(message.getPayload()));
-                } else {
-                    hasInitiatedSubscribeTopic = true;
-                }
+                AppointmentService.manageRecievedPayload(topic, new String(message.getPayload()));
               }
 
                public void deliveryComplete(IMqttDeliveryToken token) {
