@@ -13,45 +13,26 @@ import org.example4.Schemas.AvailableTimes;
 import org.example4.TopicManagement.TopicManager;
 
 public class AppointmentService {
-    // public static MqttManager mqttMain;
+    public static MqttMain mqttManager1;
+    public static MqttMain mqttManager2;
 
     public static void main(String[] args) {
         DatabaseManager.initializeDatabaseConnection();
-        MqttManager.initializeSubscriptions();
+ 
+        mqttManager1 = new MqttMain();
+        mqttManager1.subscribe("sub/patient/appointments/create5"); // "sub/patient/appointments/create", "sub/dentist/availabletime/create"
+
+        mqttManager2 = new MqttMain();
+        mqttManager2.subscribe("sub/patient/appointments/create6");
     }
 
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
-        TopicManager topicManager = new TopicManager(topic, payload);
-        // topicManager.client.executeRequestedOperation(topic);
+        System.out.println("**********************************************");
+        System.out.println("MANAGE RECIEVED PAYLOAD");
+        System.out.println("**********************************************");
 
-        // topicManager.client.createAppointment();
-        // topicManager.client.deleteAppointment();
-
-        /*
-        if (topic.contains("availabletime")) {
-            // Dentist creates available time
-            if (topic.contains("create")) {
-                dentistCreateAvailableTime(payload);
-            }
-        }
-        // Perform operations on already agreed timeslots between dentists and patients
-        else if (topic.contains("appointments"))
-        {
-            // Patient books appointment
-            if (topic.contains("create")) {
-                patientCreateAppointment(payload);
-            }
-            // Dentist deletes booked appointment
-            else if (topic.contains("delete")) {
-                dentistDeleteAppointment(payload);
-            }
-            // Patient cancels appointments
-            else if (topic.contains("cancel")) {
-                patientDeleteAppointment(payload);
-            }
-        }
-        */
+        // TopicManager topicManager = new TopicManager(topic, payload);
     }
 
     // POST - Create new instance in database
@@ -69,29 +50,8 @@ public class AppointmentService {
         }
     }
 
-    // POST - Dentist creates a timeslot in which patients can book appointments
-    private static void dentistCreateAvailableTime(String payload) {
-        // Document availableTimesDocument = convertStringToDocument(payload, new AvailableTimes());
-        // DatabaseManager.availableTimesCollection.insertOne(availableTimesDocument);
-
-        Document availableTimesDocument = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());        
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, availableTimesDocument);
-
-        MqttManager.getMqttManager().publishMessage("pub/availabletime/create", availableTimesDocument.toJson());
-    }
-
-    // Patient registers on existing slot found in 'AvailableTimes' collection
-    private static void patientCreateAppointment(String payload) {
-        // Document appointmentDocument = convertStringToDocument(payload, new Appointments());
-        // DatabaseManager.appointmentsCollection.insertOne(appointmentDocument);
-
-        Document appointmentDocument = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, appointmentDocument);
-
-        MqttManager.getMqttManager().publishMessage("pub/appointments/create", appointmentDocument.toJson());
-    }
-
     // Delete instance from 'AvailableTimes' collection
+    /*
     private static void dentistDeleteAppointment(String payload) {
         // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
 
@@ -109,13 +69,16 @@ public class AppointmentService {
 
             DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
 
-            MqttManager.getMqttManager().publishMessage("pub/appointments/delete", document.toJson());
+            // MqttManager.getMqttManager().publishMessage("pub/appointments/delete", document.toJson());
+            mqttManager.publishMessage("pub/appointments/delete", document.toJson());
             System.out.println("Appointment deleted successfully.");
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
     }
+    */
 
+    /*
     private static void patientDeleteAppointment(String payload) {
         JsonNode jsonNode = Utils.deserialize(payload);
         String objectId = jsonNode.get("_id").toString();
@@ -137,7 +100,8 @@ public class AppointmentService {
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
                 Document deletedDocument = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
-                MqttManager.getMqttManager().publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
+                // MqttManager.getMqttManager().publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
+                mqttManager.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
 
                 // Remove the "patient_id" field from the document
                 deletedDocument.remove("patient_id");
@@ -153,6 +117,7 @@ public class AppointmentService {
             System.out.println("An error occurred: " + e.getMessage());
         }
     }
+    */
 
     // IDEA: Refactor into MongoDBSchema.java:
 
