@@ -1,8 +1,8 @@
 package org.example4.TopicManagement;
 
 import org.bson.Document;
+import org.example4.AppointmentService;
 import org.example4.DatabaseManager;
-import org.example4.MqttManager;
 import org.example4.Schemas.AvailableTimes;
 
 public class Dentist implements Client {
@@ -14,10 +14,11 @@ public class Dentist implements Client {
         executeRequestedOperation(topic, payload);
     }
 
+    // Dentist creates a timeslot in which patients can book appointments
     @Override
     public void createAppointment(String payload) {
-        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());        
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, payloadDoc);        
+        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());
+        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, payloadDoc);  
     }
 
     @Override
@@ -35,7 +36,11 @@ public class Dentist implements Client {
             deleteAppointment();
         }
 
-        MqttManager.getMqttManager().publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        // REFACTORING TODO: Find a way to refactor so that the pub-topic depends on the operations (if-statements above)
+        // MqttManager.getMqttManager().publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        // AppointmentService.mqttManager.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        // mqttManager.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        AppointmentService.mqttManager1.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
     }
 
     // NOTE: Elaborate on this method once group has decided on structure of topic

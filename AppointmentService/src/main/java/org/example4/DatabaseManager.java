@@ -16,7 +16,7 @@ public class DatabaseManager { // TODO: Create singleton
     public static MongoCollection<Document> appointmentsCollection;
 
     public static void initializeDatabaseConnection() {
-        client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
+        client = MongoClients.create("mongodb+srv://DentistUser:1234@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
         appointmentDatabase = client.getDatabase("AppointmentService");
         availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
         appointmentsCollection = appointmentDatabase.getCollection("Appointments");

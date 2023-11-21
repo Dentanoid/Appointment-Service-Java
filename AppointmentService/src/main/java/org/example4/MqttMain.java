@@ -10,21 +10,10 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class MqttManager {
-    private static MqttManager mqttManager;
-    private static String broker = "tcp://broker.hivemq.com:1883";
+public class MqttMain {
+    private static final String broker = "tcp://broker.hivemq.com:1883";
 
     int qos = 0;
-
-    public static void initializeSubscriptions() {
-        mqttManager = new MqttManager();
-        mqttManager.subscribe("sub/dentist/availabletime/create");    
-        // mqttManagr.subscribe("sub/availabletime/create"); // Add a new subscription
-    }
-
-    public static MqttManager getMqttManager() {
-        return mqttManager;
-    }
 
     public void publishMessage(String topic, String content) {
     // String clientId     = "JavaSampleClientId";
@@ -44,9 +33,11 @@ public class MqttManager {
             sampleClient.publish(topic, message);
             System.out.println("Message published");
 
-            // sampleClient.disconnect();
-            // System.out.println("Disconnected");
-            // System.exit(0);
+            /*
+            sampleClient.disconnect(); //
+            System.out.println("Disconnected"); //
+            System.exit(0); //
+            */
         } catch(MqttException me) {
             System.out.println("reason "+me.getReasonCode());
             System.out.println("msg "+me.getMessage());
