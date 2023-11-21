@@ -2,15 +2,15 @@ package org.example4.TopicManagement;
 
 public class TopicManager implements DataDomain {
     private String topic;
+    public Client client;
 
     public TopicManager(String topic) {
         this.topic = topic;
-
-        Client client = getClient(topic);
+        client = getClient(topic);
     }
 
-    public Client getClient(String test) {
-        if (test == "T") {
+    public Client getClient(String topic) {
+        if (topic.contains("dentist")) {
             return new Dentist();
         }
         return new Patient();

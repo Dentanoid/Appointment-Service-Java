@@ -1,42 +1,23 @@
 package org.example4;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.gson.Gson;
-import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.example4.Schemas.Appointments;
 import org.example4.Schemas.AvailableTimes;
-import org.example4.Schemas.CollectionSchema;
+import org.example4.TopicManagement.TopicManager;
 
 public class AppointmentService {
-    private static MongoClient client;
-    private static MongoDatabase appointmentDatabase;
-    private static MqttMain mqttMain;
-    private static MongoCollection<Document> availableTimesCollection;
-    private static MongoCollection<Document> appointmentsCollection;
+    public static MqttMain mqttMain;
 
     public static void main(String[] args) {
-        initializeDatabaseConnection();
+        DatabaseManager.initializeDatabaseConnection();
         initializeMqttConnection();
-    }
-
-    private static void initializeDatabaseConnection() {
-        client = MongoClients.create("mongodb+srv://DentistUser:dentist123@dentistsystemdb.7rnyky8.mongodb.net/?retryWrites=true&w=majority");
-        appointmentDatabase = client.getDatabase("AppointmentService");
-        availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
-        appointmentsCollection = appointmentDatabase.getCollection("Appointments");
     }
 
     private static void initializeMqttConnection() {
@@ -49,11 +30,16 @@ public class AppointmentService {
         // 3) "sub/appointments/create" --> Patient (WORKS)
         // 4) "sub/appointments/cancel" --> Patient
 
-        mqttMain.subscribe("sub/appointments/delete");
+        mqttMain.subscribe("sub/availabletime/create");
     }
 
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
+        // TopicManager topicManager = new TopicManager(topic);
+        // topicManager.client.executeRequestedOperation(topic);
+        // topicManager.client.createAppointment();
+        // topicManager.client.deleteAppointment();
+
 
         if (topic.contains("availabletime")) {
             // Dentist creates available time
@@ -96,16 +82,23 @@ public class AppointmentService {
 
     // POST - Dentist creates a timeslot in which patients can book appointments
     private static void dentistCreateAvailableTime(String payload) {
-        Document availableTimesDocument = convertStringToDocument(payload, new AvailableTimes());
-        availableTimesCollection.insertOne(availableTimesDocument);
+        // Document availableTimesDocument = convertStringToDocument(payload, new AvailableTimes());
+        // DatabaseManager.availableTimesCollection.insertOne(availableTimesDocument);
+
+        Document availableTimesDocument = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());        
+        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, availableTimesDocument);
 
         mqttMain.publishMessage("pub/availabletime/create", availableTimesDocument.toJson());
     }
 
     // Patient registers on existing slot found in 'AvailableTimes' collection
     private static void patientCreateAppointment(String payload) {
-        Document appointmentDocument = convertStringToDocument(payload, new Appointments());
-        appointmentsCollection.insertOne(appointmentDocument);
+        // Document appointmentDocument = convertStringToDocument(payload, new Appointments());
+        // DatabaseManager.appointmentsCollection.insertOne(appointmentDocument);
+
+        Document appointmentDocument = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
+        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, appointmentDocument);
+
         mqttMain.publishMessage("pub/appointments/create", appointmentDocument.toJson());
     }
 
@@ -123,9 +116,9 @@ public class AppointmentService {
             ObjectId appointmenObjectId = new ObjectId(payload);
 
             Bson searchQuery = new Document("_id", appointmenObjectId);
-            Document document = appointmentsCollection.findOneAndDelete(searchQuery);
+            Document document = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
 
-            availableTimesCollection.findOneAndDelete(searchQuery);
+            DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
 
             mqttMain.publishMessage("pub/appointments/delete", document.toJson());
             System.out.println("Appointment deleted successfully.");
@@ -150,18 +143,18 @@ public class AppointmentService {
         Bson searchQuery = new Document("_id", appointmentId);
 
         try {
-            Document foundDocument = appointmentsCollection.find(searchQuery).first();
+            Document foundDocument = DatabaseManager.appointmentsCollection.find(searchQuery).first();
 
             if (foundDocument != null) {
                 // Delete from the Appointments collection and get the document
-                Document deletedDocument = appointmentsCollection.findOneAndDelete(searchQuery);
+                Document deletedDocument = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
                 mqttMain.publishMessage("grp20/notification/patient/cancel", deletedDocument.toJson());
 
                 // Remove the "patient_id" field from the document
                 deletedDocument.remove("patient_id");
 
                 // Insert the modified document into the AvailableTimes collection
-                availableTimesCollection.insertOne(deletedDocument);
+                DatabaseManager.availableTimesCollection.insertOne(deletedDocument);
 
                 System.out.println("Document deleted, patient_id removed, and migrated successfully.");
             } else {
@@ -174,10 +167,12 @@ public class AppointmentService {
 
     // IDEA: Refactor into MongoDBSchema.java:
 
+    /*
     // Convert the payload-string to a document that can be stored in the database
     private static Document convertStringToDocument(String payload, CollectionSchema classSchema) {
         Gson gson = new Gson();
         CollectionSchema schemaClass = gson.fromJson(payload, classSchema.getClass());
         return schemaClass.getDocument();
     }
+    */
 }
