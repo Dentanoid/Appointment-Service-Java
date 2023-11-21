@@ -3,14 +3,13 @@ package org.example4.TopicManagement;
 import org.bson.Document;
 import org.example4.AppointmentService;
 import org.example4.DatabaseManager;
+import org.example4.MqttMain;
 import org.example4.Schemas.AvailableTimes;
 
 public class Dentist implements Client {
-    private String topic;
     private Document payloadDoc;
 
     public Dentist(String topic, String payload) {
-        this.topic = topic;
         executeRequestedOperation(topic, payload);
     }
 
@@ -36,11 +35,8 @@ public class Dentist implements Client {
             deleteAppointment();
         }
 
-        // REFACTORING TODO: Find a way to refactor so that the pub-topic depends on the operations (if-statements above)
-        // MqttManager.getMqttManager().publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
-        // AppointmentService.mqttManager.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
-        // mqttManager.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
-        AppointmentService.mqttManager1.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        // AppointmentService.mqttManager1.publishMessage("pub/dentist/availabletime/create", payloadDoc.toJson());
+        MqttMain.subscriptionManagers.get(topic).publishMessage("pub/test/topic/123", payloadDoc.toJson());
     }
 
     // NOTE: Elaborate on this method once group has decided on structure of topic

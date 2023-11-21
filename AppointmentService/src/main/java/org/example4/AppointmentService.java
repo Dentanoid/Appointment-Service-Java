@@ -27,22 +27,7 @@ public class AppointmentService {
         System.out.println("MANAGE RECIEVED PAYLOAD");
         System.out.println("**********************************************");
 
-        // TopicManager topicManager = new TopicManager(topic, payload);
-    }
-
-    // POST - Create new instance in database
-    private static void addCollection(MongoCollection<Document> coll, Document dataToRegister) {
-        coll.insertOne(dataToRegister);
-    }
-
-    // READ - Get all instances in a collection
-    private static void printCollection(MongoCollection<Document> collection) {
-        FindIterable<Document> documents = collection.find();
-        Iterator<Document> it = documents.iterator();
-        while (it.hasNext()) {
-            Document doc = it.next();
-            System.out.println(doc.toJson());
-        }
+        TopicManager topicManager = new TopicManager(topic, payload);
     }
 
     // Delete instance from 'AvailableTimes' collection
@@ -111,17 +96,6 @@ public class AppointmentService {
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
-    }
-    */
-
-    // IDEA: Refactor into MongoDBSchema.java:
-
-    /*
-    // Convert the payload-string to a document that can be stored in the database
-    private static Document convertStringToDocument(String payload, CollectionSchema classSchema) {
-        Gson gson = new Gson();
-        CollectionSchema schemaClass = gson.fromJson(payload, classSchema.getClass());
-        return schemaClass.getDocument();
     }
     */
 }

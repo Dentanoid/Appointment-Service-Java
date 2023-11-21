@@ -3,14 +3,13 @@ package org.example4.TopicManagement;
 import org.bson.Document;
 import org.example4.AppointmentService;
 import org.example4.DatabaseManager;
+import org.example4.MqttMain;
 import org.example4.Schemas.Appointments;
 
 public class Patient implements Client {
-    private String topic;
     private Document payloadDoc;
 
     public Patient(String topic, String payload) {
-        this.topic = topic;
         executeRequestedOperation(topic, payload);
     }
 
@@ -36,10 +35,8 @@ public class Patient implements Client {
             deleteAppointment();
         }
 
-        // MqttManager.getMqttManager().publishMessage("pub/patient/appointments/create", payloadDoc.toJson());
-        // AppointmentService.mqttManager.publishMessage("pub/patient/appointments/create", payloadDoc.toJson());
-        // mqttManager.publishMessage("pub/patient/appointments/create", payloadDoc.toJson());
-        AppointmentService.mqttManager1.publishMessage("pub/patient/appointments/create", payloadDoc.toJson());
+        // Todo: Create smooth extension code for publish-messages
+        MqttMain.subscriptionManagers.get(topic).publishMessage("pub/test/topic/123", payloadDoc.toJson());
     }
     
     private String decodeRequestedOperation(String topic) {
