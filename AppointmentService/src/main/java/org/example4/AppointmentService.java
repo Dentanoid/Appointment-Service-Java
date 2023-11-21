@@ -55,9 +55,8 @@ public class AppointmentService {
     // Once this service has recieved the payload, it has to be managed
     public static void manageRecievedPayload(String topic, String payload) {
 
-        // Dentist
         if (topic.contains("availabletime")) {
-            // Create available time
+            // Dentist creates available time
             if (topic.contains("create")) {
                 dentistCreateAvailableTime(payload);
             }
@@ -114,6 +113,9 @@ public class AppointmentService {
     private static void dentistDeleteAppointment(String payload) {
         // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
 
+        // TODO: Get ObjectId from db instance:
+        // 1) query DB to get the instance
+        // 2)
         System.out.println(payload);
 
         try {
