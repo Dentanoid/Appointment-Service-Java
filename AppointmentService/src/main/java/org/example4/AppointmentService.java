@@ -32,34 +32,6 @@ public class AppointmentService {
         TopicManager topicManager = new TopicManager(topic, payload);
     }
 
-    // Delete instance from 'AvailableTimes' collection
-    /*
-    private static void dentistDeleteAppointment(String payload) {
-        // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
-
-        // TODO: Get ObjectId from db instance:
-        // 1) query DB to get the instance
-        // 2)
-        System.out.println(payload);
-
-        try {
-            // ObjectId appointmenObjectId = new ObjectId(appointmentId);
-            ObjectId appointmenObjectId = new ObjectId(payload);
-
-            Bson searchQuery = new Document("_id", appointmenObjectId);
-            Document document = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
-
-            DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
-
-            // MqttManager.getMqttManager().publishMessage("pub/appointments/delete", document.toJson());
-            mqttManager.publishMessage("pub/appointments/delete", document.toJson());
-            System.out.println("Appointment deleted successfully.");
-        } catch (Exception e) {
-            System.out.println("An error occurred: " + e.getMessage());
-        }
-    }
-    */
-
     /*
     private static void patientDeleteAppointment(String payload) {
         JsonNode jsonNode = Utils.deserialize(payload);
