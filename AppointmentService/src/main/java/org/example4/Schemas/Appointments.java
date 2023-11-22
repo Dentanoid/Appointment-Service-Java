@@ -21,9 +21,9 @@ public class Appointments implements CollectionSchema {
     public Document getDocument() {
         return new Document("clinic_id", this.clinic_id)
               .append("dentist_id", this.dentist_id)
-              .append("patient_id", this.patient_id)
               .append("start_time", this.start_time)
               .append("end_time", this.end_time)
+              .append("patient_id", this.patient_id)
               .append("appointment_id", this.appointment_id);
     }
 }
