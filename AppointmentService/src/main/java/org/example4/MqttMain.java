@@ -18,7 +18,9 @@ public class MqttMain {
     // Add a subscription by adding a string element here
     private static final String[] subscriptions = {
         "sub/patient/appointments/create",
-        "sub/dentist/availabletimes/create"
+        "sub/dentist/availabletimes/create",
+        "sub/dentist/delete",
+        "sub/patient/appointments/delete"
     };
 
     int qos = 0;
