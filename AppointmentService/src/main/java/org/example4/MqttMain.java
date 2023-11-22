@@ -13,10 +13,14 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
     public static HashMap<String, MqttMain> subscriptionManagers; // Format: // <"subTopic", new MqttMain Object>
-    private static final String broker = "tcp://broker.hivemq.com:1883";
+    private static final String broker = "tcp://broker.hivemq.com:1883";    
 
-    // Add a subscription by adding a string element here
-    private static final String[] subscriptions = {
+    // Topic requirement:
+    // {string1}/{string2}
+
+    // string1 --> Define client
+    // string2 --> Define action
+    private static final String[] subscriptions = { // Add a subscription by adding a string element here
         "sub/patient/appointments/create",
         "sub/dentist/availabletimes/create",
         "sub/dentist/delete",
