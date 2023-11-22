@@ -4,6 +4,7 @@ import org.bson.Document;
 import org.example4.AppointmentService;
 import org.example4.DatabaseManager;
 import org.example4.MqttMain;
+import org.example4.Utils;
 import org.example4.Schemas.Appointments;
 
 public class Patient implements Client {
@@ -17,30 +18,28 @@ public class Patient implements Client {
     @Override
     public void createAppointment(String payload) {
         payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);        
+        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
+        
+        // TODO:
+        // 1) Do a search query in 'AvailableTimes' collection to find the DB-instance with the corresponding dentist_id
+        // 2) Delete the instance that was found
     }
 
     @Override
-    public void deleteAppointment() {
+    public void deleteAppointment(String payload) {
 
     }
 
     @Override
     public void executeRequestedOperation(String topic, String payload) {
-        String operation = decodeRequestedOperation(topic);
+        String operation = Utils.getSubstringAtIndex(topic, 0, true);
 
         if (operation.equals("create")) {
             createAppointment(payload);
         } else {
-            deleteAppointment();
+            deleteAppointment(payload);
         }
 
-        // Todo: Create smooth extension code for publish-messages
-        MqttMain.subscriptionManagers.get(topic).publishMessage("pub/test/topic/123", payloadDoc.toJson());
-    }
-    
-    private String decodeRequestedOperation(String topic) {
-        String[] splitString = topic.split("/"); // "sub/patient/appointments/create"
-        return splitString[splitString.length - 1];
+        MqttMain.subscriptionManagers.get(topic).publishMessage("pub/patient/notify", payloadDoc.toJson());
     }
 }

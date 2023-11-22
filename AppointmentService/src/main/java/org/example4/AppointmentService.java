@@ -18,6 +18,8 @@ public class AppointmentService {
 
     public static void main(String[] args) {
         DatabaseManager.initializeDatabaseConnection();
+        // DatabaseManager.deleteAllCollectionInstances(); // <-- For developers when testing
+
         MqttMain.initializeMqttConnection();
     }
 

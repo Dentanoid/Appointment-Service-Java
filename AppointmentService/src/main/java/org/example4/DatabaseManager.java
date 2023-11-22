@@ -3,9 +3,12 @@ package org.example4;
 import java.util.Iterator;
 
 import org.bson.Document;
+import org.example4.Schemas.Appointments;
 import org.example4.Schemas.CollectionSchema;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -32,6 +35,12 @@ public class DatabaseManager {
         return schemaClass.getDocument();
     }
 
+    public static String getAttributeValue(String payload, String attributeName, CollectionSchema classSchema) {
+        Gson gson = new Gson();
+        CollectionSchema schemaObject = gson.fromJson(payload, classSchema.getClass());
+        return schemaObject.getDocument().get(attributeName).toString();
+    }
+
     // POST - Create new instance in a collection
     public static void saveDocumentInCollection(MongoCollection<Document> collection, Document doc) {
         collection.insertOne(doc);
@@ -45,5 +54,11 @@ public class DatabaseManager {
             Document doc = it.next();
             System.out.println(doc.toJson());
         }
+    }
+
+    // A temporary method for the developers to delete everything to save time in development process
+    public static void deleteAllCollectionInstances() {
+        availableTimesCollection.deleteMany(new Document());
+        appointmentsCollection.deleteMany(new Document());
     }
 }

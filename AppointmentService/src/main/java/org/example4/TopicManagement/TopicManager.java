@@ -1,6 +1,6 @@
 package org.example4.TopicManagement;
 
-public class TopicManager implements DataDomain {
+public class TopicManager {
     public Client client;
 
     public TopicManager(String topic, String payload) {
@@ -12,18 +12,5 @@ public class TopicManager implements DataDomain {
             return new Dentist(topic, payload);
         }
         return new Patient(topic, payload);
-    }
-
-    @Override
-    public String getCollection() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getCollection'");
-    }
-
-    @Override
-    public String getOperation() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getOperation'");
-    }
-    
+    } 
 }
