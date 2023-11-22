@@ -3,12 +3,16 @@ package org.example4;
 import java.util.Iterator;
 
 import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 import org.example4.Schemas.Appointments;
 import org.example4.Schemas.CollectionSchema;
+import static com.mongodb.client.model.Filters.eq;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -35,12 +39,6 @@ public class DatabaseManager {
         return schemaClass.getDocument();
     }
 
-    public static String getAttributeValue(String payload, String attributeName, CollectionSchema classSchema) {
-        Gson gson = new Gson();
-        CollectionSchema schemaObject = gson.fromJson(payload, classSchema.getClass());
-        return schemaObject.getDocument().get(attributeName).toString();
-    }
-
     // POST - Create new instance in a collection
     public static void saveDocumentInCollection(MongoCollection<Document> collection, Document doc) {
         collection.insertOne(doc);
@@ -60,5 +58,39 @@ public class DatabaseManager {
     public static void deleteAllCollectionInstances() {
         availableTimesCollection.deleteMany(new Document());
         appointmentsCollection.deleteMany(new Document());
+    }
+
+    public static String getAttributeValue(String payload, String attributeName, CollectionSchema classSchema) {
+        Gson gson = new Gson();
+        CollectionSchema schemaObject = gson.fromJson(payload, classSchema.getClass());
+        return schemaObject.getDocument().get(attributeName).toString();
+    }
+
+
+
+
+    // Message Parser
+
+    // Get ObjectId of already existing DB-instance that has content identical to the payload
+    public static String getObjectId(String payload, CollectionSchema classSchema, MongoCollection<Document> collection) {
+        Document payloadDoc = convertPayloadToDocument(payload, classSchema);
+        Document doc = queryBySchema(collection, payloadDoc);
+        return doc.get("_id").toString();
+    }
+
+    // Takes payload as input and queries it according to the attributes of a schema. Returns the documents that has identical content as the payload
+    public static Document queryBySchema(MongoCollection<Document> collection, Document payloadDocument) {
+        Bson schemaQueryConditions = new Document(payloadDocument);
+        Document result = collection.find(schemaQueryConditions).first();
+
+        if (result == null) {
+            System.out.println("Status 404");
+            return null;
+        }
+        return result;
+    }
+
+    public static Document findDocumentById(String objectId, MongoCollection<Document> collection) {
+        return collection.find(eq("_id", new ObjectId(objectId))).first();
     }
 }
