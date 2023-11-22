@@ -8,6 +8,7 @@ import org.example4.DatabaseManager;
 import org.example4.MqttMain;
 import org.example4.Utils;
 import org.example4.Schemas.Appointments;
+import org.example4.Schemas.AvailableTimes;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -23,16 +24,17 @@ public class Patient implements Client {
     public void createAppointment(String payload) {
         payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
         DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
-        
-        // TODO:
-        // 1) Do a search query in 'AvailableTimes' collection to find the DB-instance with the corresponding dentist_id
-        // 2) Delete the instance that was found
+
+        String dentistId = DatabaseManager.getAttributeValue(payload, "dentist_id", new AvailableTimes());
+        Bson searchQuery = new Document("dentist_id", dentistId);
+
+        payloadDoc = DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
     }
 
     @Override
     public void deleteAppointment(String payload) {
-        String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments());
-        Bson searchQuery = new Document("appointment_id", appointmentId);
+        String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments()); // TODO: Create method getValue() in Client.java
+        Bson searchQuery = new Document("appointment_id", appointmentId); // TODO: Refactor into 'query' method and reuse across all methods in both client-classes
 
         try {
             Document foundDocument = DatabaseManager.appointmentsCollection.find(searchQuery).first();
@@ -69,7 +71,7 @@ public class Patient implements Client {
         if (payloadDoc != null) {
             MqttMain.subscriptionManagers.get(topic).publishMessage("pub/patient/notify", payloadDoc.toJson());
         } else {
-            System.out.println("Status 404 - Did not find an appointment to delete");
+            System.out.println("Status 404 - No dentist on the available time was found");
         }
     }
 }
