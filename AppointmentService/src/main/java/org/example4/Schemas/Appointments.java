@@ -15,7 +15,6 @@ public class Appointments implements CollectionSchema {
         this.patient_id = " ";
         this.start_time = " ";
         this.end_time = " ";
-        this.appointment_id = " ";
     }
 
     public Document getDocument() {
@@ -23,7 +22,6 @@ public class Appointments implements CollectionSchema {
               .append("dentist_id", this.dentist_id)
               .append("start_time", this.start_time)
               .append("end_time", this.end_time)
-              .append("patient_id", this.patient_id)
-              .append("appointment_id", this.appointment_id);
+              .append("patient_id", this.patient_id);
     }
 }

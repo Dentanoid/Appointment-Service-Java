@@ -9,6 +9,7 @@ import org.example4.MqttMain;
 import org.example4.Utils;
 import org.example4.Schemas.Appointments;
 import org.example4.Schemas.AvailableTimes;
+import org.example4.Schemas.CollectionSchema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -22,6 +23,8 @@ public class Patient implements Client {
     // Patient books existing timeslot
     @Override
     public void createAppointment(String payload) {
+
+        // TODO Check if can find matching ObjectId before storing in DB
         payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
         DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
 
@@ -33,29 +36,18 @@ public class Patient implements Client {
 
     @Override
     public void deleteAppointment(String payload) {
-        String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments()); // TODO: Create method getValue() in Client.java
-        Bson searchQuery = new Document("appointment_id", appointmentId); // TODO: Refactor into 'query' method and reuse across all methods in both client-classes
+        // String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments()); // TODO: Create method getValue() in Client.java
+        // Bson searchQuery = new Document("appointment_id", appointmentId); // TODO: Refactor into 'query' method and reuse across all methods in both client-classes
 
-        try {
-            Document foundDocument = DatabaseManager.appointmentsCollection.find(searchQuery).first();
+        String objectId =  DatabaseManager.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        Document docTest = DatabaseManager.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
 
-            if (foundDocument != null) {
-                payloadDoc = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
+        docTest.remove("patient_id");
 
-                // Remove the additional attributes that distinguishes an 'Appointment' collection instance from 'AvailableTimes'
-                payloadDoc.remove("patient_id");
-                payloadDoc.remove("appointment_id");
+        DatabaseManager.availableTimesCollection.insertOne(docTest);
+        DatabaseManager.appointmentsCollection.findOneAndDelete(docTest);
 
-                // Insert the modified document into the AvailableTimes collection
-                DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
-
-                System.out.println("Document deleted, patient_id removed, and migrated successfully.");
-            } else {
-                System.out.println("Object with this objectId is not found");
-            }
-        } catch (Exception e) {
-            System.out.println("An error occurred: " + e.getMessage());
-        }
+        System.out.println("Document deleted, patient_id removed, and migrated successfully.");
     }
 
     @Override
