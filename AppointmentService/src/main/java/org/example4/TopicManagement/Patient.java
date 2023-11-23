@@ -4,12 +4,13 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.example4.AppointmentService;
-import org.example4.DatabaseManager;
 import org.example4.MqttMain;
 import org.example4.Utils;
-import org.example4.Schemas.Appointments;
-import org.example4.Schemas.AvailableTimes;
-import org.example4.Schemas.CollectionSchema;
+import org.example4.DatabaseManagement.DatabaseManager;
+import org.example4.DatabaseManagement.PayloadParser;
+import org.example4.DatabaseManagement.Schemas.Appointments;
+import org.example4.DatabaseManagement.Schemas.AvailableTimes;
+import org.example4.DatabaseManagement.Schemas.CollectionSchema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -23,18 +24,15 @@ public class Patient implements Client {
     // Patient books existing timeslot
     @Override
     public void createAppointment(String payload) {
-        String objectId =  DatabaseManager.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
+        String objectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
         // If an dentist 'available time' exists at requested time to book
         if (objectId != "-1") {
             // Delete dentist's slot from 'AvailableTimes' collection
-            Document dentistAvailableTimeDoc = DatabaseManager.findDocumentById(objectId, DatabaseManager.availableTimesCollection);
+            Document dentistAvailableTimeDoc = PayloadParser.findDocumentById(objectId, DatabaseManager.availableTimesCollection);
             DatabaseManager.availableTimesCollection.findOneAndDelete(dentistAvailableTimeDoc);
 
-            // Save payload-document in 'Appointment' collection
-            payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-            System.out.println("**************" + payloadDoc + "******************");
-            DatabaseManager.appointmentsCollection.insertOne(payloadDoc);
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new Appointments(), DatabaseManager.appointmentsCollection);
         } else {
             System.out.println("No dentist has booked at that time!");
         }
@@ -43,14 +41,14 @@ public class Patient implements Client {
     // Delete instance from 'Appointments' and add it as 'AvailableTime'
     @Override
     public void deleteAppointment(String payload) {
-        String objectId =  DatabaseManager.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        String objectId =  PayloadParser.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
 
         // If payload-request is consistent with the actual value in database
         if (objectId != "-1") {
-            payloadDoc = DatabaseManager.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
-
+            payloadDoc = PayloadParser.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
             payloadDoc.remove("patient_id");
 
+            // TODO: Create method in 'DatabaseManager.java' migrateData(collectionA, collectionB)
             DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
             DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);
         } else {
