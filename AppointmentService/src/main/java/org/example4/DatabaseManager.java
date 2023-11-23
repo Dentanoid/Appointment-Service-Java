@@ -39,11 +39,6 @@ public class DatabaseManager {
         return schemaClass.getDocument();
     }
 
-    // POST - Create new instance in a collection
-    public static void saveDocumentInCollection(MongoCollection<Document> collection, Document doc) {
-        collection.insertOne(doc);
-    }
-
     // READ - Get all instances in a collection
     private static void printCollection(MongoCollection<Document> collection) {
         FindIterable<Document> documents = collection.find();
