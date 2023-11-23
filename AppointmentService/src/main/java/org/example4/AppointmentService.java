@@ -8,8 +8,9 @@ import java.util.Iterator;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
-import org.example4.Schemas.Appointments;
-import org.example4.Schemas.AvailableTimes;
+import org.example4.DatabaseManagement.DatabaseManager;
+import org.example4.DatabaseManagement.Schemas.Appointments;
+import org.example4.DatabaseManagement.Schemas.AvailableTimes;
 import org.example4.TopicManagement.TopicManager;
 
 public class AppointmentService {
