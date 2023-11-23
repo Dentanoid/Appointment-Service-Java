@@ -11,7 +11,7 @@ import org.example4.Schemas.Appointments;
 import org.example4.Schemas.AvailableTimes;
 
 public class Dentist implements Client {
-    private Document payloadDoc;
+    private Document payloadDoc = null;
 
     public Dentist(String topic, String payload) {
         executeRequestedOperation(topic, payload);
@@ -20,14 +20,41 @@ public class Dentist implements Client {
     // Dentist creates a timeslot in which patients can book appointments
     @Override
     public void createAppointment(String payload) {
-        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, payloadDoc);
+        String objectId =  DatabaseManager.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
+
+        // If the payload is unique, publish a time slot
+        if (objectId == "-1") {
+            // TODO: Check if dentist's timeslots overlaps from payload
+
+            payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());
+            DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
+        }
     }
 
+     // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
     @Override
     public void deleteAppointment(String payload) {
-        // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
+        String appointmentObjectId =  DatabaseManager.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        String availableTimeObjectId =  DatabaseManager.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
+
+        // The dentist has an appointment to cancel
+        if (appointmentObjectId != "-1") {
+            payloadDoc = DatabaseManager.findDocumentById(appointmentObjectId, DatabaseManager.appointmentsCollection);
+            DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);                        
+        }
+
+        // The dentist has an available time to cancel
+        if (availableTimeObjectId != "-1") {
+            payloadDoc = DatabaseManager.findDocumentById(availableTimeObjectId, DatabaseManager.availableTimesCollection);
+            DatabaseManager.availableTimesCollection.findOneAndDelete(payloadDoc);
+        }
+
+        if (payloadDoc != null) {
+            System.out.println("Appointment deleted successfully.");
+        }
+
+        /*
         try {
             String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments());
             Bson searchQuery = new Document("appointment_id", appointmentId);
@@ -39,6 +66,7 @@ public class Dentist implements Client {
         } catch (Exception e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
+        */
     }
 
     @Override
@@ -58,7 +86,7 @@ public class Dentist implements Client {
         if (payloadDoc != null) {
             MqttMain.subscriptionManagers.get(topic).publishMessage(publishTopic, payloadDoc.toJson());
         } else {
-            System.out.println("Status 404 - Did not find a timeslot to delete");
+            System.out.println("Status 404 - Did not find a timeslot");
         }
     }
 }

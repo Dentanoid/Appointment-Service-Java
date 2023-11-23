@@ -33,7 +33,8 @@ public class Patient implements Client {
 
             // Save payload-document in 'Appointment' collection
             payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-            DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
+            System.out.println("**************" + payloadDoc + "******************");
+            DatabaseManager.appointmentsCollection.insertOne(payloadDoc);
         } else {
             System.out.println("No dentist has booked at that time!");
         }
