@@ -1,5 +1,8 @@
 package org.example4;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -9,19 +12,35 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttMain {
-    String broker = "tcp://broker.hivemq.com:1883";  
+    public static HashMap<String, MqttMain> subscriptionManagers; // Format: // <"subTopic", new MqttMain Object>
+    private static final String broker = "tcp://broker.hivemq.com:1883";    
 
-    // Specific for publish
-    // String content;
+    // Topic requirement:
+    // {string1}/{string2}
 
-    public MqttMain(String broker) {
-        this.broker = broker;
+    // string1 --> Define client
+    // string2 --> Define action
+    private static final String[] subscriptions = { // Add a subscription by adding a string element here
+        "sub/patient/appointments/create",
+        "sub/dentist/availabletimes/create",
+        "sub/dentist/delete",
+        "sub/patient/appointments/delete"
+    };
+
+    int qos = 0;
+
+    // Create new instances of MqttMain that are mapped to their respective topics
+    public static void initializeMqttConnection() {
+        subscriptionManagers = new HashMap<String, MqttMain>();
+        
+        for (int i = 0; i < subscriptions.length; i++) {
+            subscriptionManagers.put(subscriptions[i], new MqttMain());
+            subscriptionManagers.get(subscriptions[i]).subscribe(subscriptions[i]);
+        }
     }
 
     public void publishMessage(String topic, String content) {
-    int qos             = 0; // 2
-    // String broker       = "tcp://broker.hivemq.com:1883";
-    String clientId     = "JavaSampleClientId";
+    String clientId = MqttClient.generateClientId();
     MemoryPersistence persistence = new MemoryPersistence();
 
         try {
@@ -37,9 +56,11 @@ public class MqttMain {
             sampleClient.publish(topic, message);
             System.out.println("Message published");
 
-            // sampleClient.disconnect();
-            // System.out.println("Disconnected");
-            // System.exit(0);
+            /*
+            sampleClient.disconnect(); //
+            System.out.println("Disconnected"); //
+            System.exit(0); //
+            */
         } catch(MqttException me) {
             System.out.println("reason "+me.getReasonCode());
             System.out.println("msg "+me.getMessage());
@@ -51,13 +72,9 @@ public class MqttMain {
     }
 
     public void subscribe(String topic) {
-        // Specific for subscribe
-        String username = "Test"; // emqx
+        String username = "Test";
         String password = "Test123";
-
-        // Can be refactored:
-        String clientid = "subscribe_client"; // "subscribe_client"
-        int qos = 0;
+        String clientid = MqttClient.generateClientId();
 
         try {
            MqttClient client = new MqttClient(broker, clientid, new MemoryPersistence());
@@ -75,11 +92,11 @@ public class MqttMain {
               }
 
                public void messageArrived(String topic, MqttMessage message) throws MqttException {
-                   System.out.println("topic: " + topic);
-                   System.out.println("Qos: " + message.getQos());
-                   System.out.println("message content: " + new String(message.getPayload()));
+                System.out.println("topic: " + topic);
+                System.out.println("Qos: " + message.getQos());
+                System.out.println("message content: " + new String(message.getPayload()));
 
-                   AppointmentService.manageRecievedPayload(topic, message.getPayload().toString());
+                AppointmentService.manageRecievedPayload(topic, new String(message.getPayload()));
               }
 
                public void deliveryComplete(IMqttDeliveryToken token) {

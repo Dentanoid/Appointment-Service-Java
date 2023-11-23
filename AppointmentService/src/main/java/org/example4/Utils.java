@@ -41,4 +41,9 @@ public class Utils {
 
         return null;
     }
+
+    public static String getSubstringAtIndex(String topic, int i, boolean getLastIndex) {
+        String[] splitString = topic.split("/");
+        return topic.split("/")[getLastIndex ? splitString.length - 1 : i];
+    }
 }
