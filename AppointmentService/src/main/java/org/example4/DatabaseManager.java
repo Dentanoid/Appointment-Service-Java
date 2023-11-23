@@ -74,19 +74,16 @@ public class DatabaseManager {
     // Get ObjectId of already existing DB-instance that has content identical to the payload
     public static String getObjectId(String payload, CollectionSchema classSchema, MongoCollection<Document> collection) {
         Document payloadDoc = convertPayloadToDocument(payload, classSchema);
-        Document doc = queryBySchema(collection, payloadDoc);
-        return doc.get("_id").toString();
+        System.out.println("***********" + payloadDoc + "************");
+        Document objectIdDoc = queryBySchema(collection, payloadDoc);
+        System.out.println("***********" + objectIdDoc + "************");
+        return objectIdDoc == null ? "-1" : objectIdDoc.get("_id").toString();
     }
 
     // Takes payload as input and queries it according to the attributes of a schema. Returns the documents that has identical content as the payload
     public static Document queryBySchema(MongoCollection<Document> collection, Document payloadDocument) {
         Bson schemaQueryConditions = new Document(payloadDocument);
         Document result = collection.find(schemaQueryConditions).first();
-
-        if (result == null) {
-            System.out.println("Status 404");
-            return null;
-        }
         return result;
     }
 

@@ -23,31 +23,38 @@ public class Patient implements Client {
     // Patient books existing timeslot
     @Override
     public void createAppointment(String payload) {
+        String objectId =  DatabaseManager.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
-        // TODO Check if can find matching ObjectId before storing in DB
-        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
+        // If an dentist 'available time' exists at requested time to book
+        if (objectId != "-1") {
+            // Delete dentist's slot from 'AvailableTimes' collection
+            Document dentistAvailableTimeDoc = DatabaseManager.findDocumentById(objectId, DatabaseManager.availableTimesCollection);
+            DatabaseManager.availableTimesCollection.findOneAndDelete(dentistAvailableTimeDoc);
 
-        String dentistId = DatabaseManager.getAttributeValue(payload, "dentist_id", new AvailableTimes());
-        Bson searchQuery = new Document("dentist_id", dentistId);
-
-        payloadDoc = DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
+            // Save payload-document in 'Appointment' collection
+            payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
+            DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
+        } else {
+            System.out.println("No dentist has booked at that time!");
+        }
     }
 
+    // Delete instance from 'Appointments' and add it as 'AvailableTime'
     @Override
     public void deleteAppointment(String payload) {
-        // String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments()); // TODO: Create method getValue() in Client.java
-        // Bson searchQuery = new Document("appointment_id", appointmentId); // TODO: Refactor into 'query' method and reuse across all methods in both client-classes
-
         String objectId =  DatabaseManager.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
-        Document docTest = DatabaseManager.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
 
-        docTest.remove("patient_id");
+        // If payload-request is consistent with the actual value in database
+        if (objectId != "-1") {
+            payloadDoc = DatabaseManager.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
 
-        DatabaseManager.availableTimesCollection.insertOne(docTest);
-        DatabaseManager.appointmentsCollection.findOneAndDelete(docTest);
+            payloadDoc.remove("patient_id");
 
-        System.out.println("Document deleted, patient_id removed, and migrated successfully.");
+            DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
+            DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);
+        } else {
+            System.out.println("Document deleted, patient_id removed, and migrated successfully.");
+        }        
     }
 
     @Override
