@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalTime;
+import java.util.Calendar;
+import java.util.Date;
 
 public class Utils {
     public static ObjectMapper objectMapper;
@@ -46,4 +49,16 @@ public class Utils {
         String[] splitString = topic.split("/");
         return topic.split("/")[getLastIndex ? splitString.length - 1 : i];
     }
+
+    /*
+    public static boolean isOverlapping(String ) {
+        LocalTime startA = LocalTime.of( 11 , 00 );
+        LocalTime stopA = LocalTime.of( 12 , 00 );
+
+        LocalTime startB = LocalTime.of( 11 , 59 );
+        LocalTime stopB = LocalTime.of( 14 , 00 );
+
+        boolean isOverlapping = (startA.isBefore(stopB) && stopA.isAfter(startB)) || (startB.isBefore(startA) && startB.isAfter(stopA));
+    }
+    */
 }
