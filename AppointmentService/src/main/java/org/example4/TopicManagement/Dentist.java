@@ -35,7 +35,7 @@ public class Dentist implements Client {
      // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
     @Override
     public void deleteAppointment(String payload) {
-        String appointmentObjectId =  PayloadParser.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        String appointmentObjectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.appointmentsCollection); // Previous: new Appointments()
         String availableTimeObjectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
         // The dentist has an appointment to cancel
