@@ -28,7 +28,11 @@ public class Dentist implements Client {
             // TODO: Check if dentist's timeslots overlaps from payload
             // PROBLEM: A dentist can have multiple appointments/available-times a day, but their intervals cannot overlap
 
-            payloadDoc = PayloadParser.savePayloadDocument(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
+            System.out.println("************* PAYLOAD: ****************");
+            System.out.println(payload);
+            System.out.println("*************************************");
+
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);  
         }
     }
 
@@ -58,16 +62,17 @@ public class Dentist implements Client {
     @Override
     public void executeRequestedOperation(String topic, String payload) {
         String operation = Utils.getSubstringAtIndex(topic, 0, true);
-        String operationIdentifier = "create";
+        String publishTopic = "";
+
+        System.out.println("1111111111111111111111111");
 
         if (operation.equals("create")) {
             createAppointment(payload);
+            publishTopic = "pub/dentist/availabletimes/create";
         } else {
             deleteAppointment(payload);            
-            operationIdentifier = "delete";
+            publishTopic = "pub/dentist/delete";
         }
-
-        String publishTopic = "pub/dentist/notify/" + operationIdentifier;
 
         if (payloadDoc != null) {
             MqttMain.subscriptionManagers.get(topic).publishMessage(publishTopic, payloadDoc.toJson());

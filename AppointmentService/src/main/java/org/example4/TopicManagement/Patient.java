@@ -34,7 +34,10 @@ public class Patient implements Client {
 
             payloadDoc = PayloadParser.savePayloadDocument(payload, new Appointments(), DatabaseManager.appointmentsCollection);
         } else {
-            System.out.println("No dentist has booked at that time!");
+
+            // NOTE: The above if-statement is unnecessary if only available appointsments are displayed on FrontEnd
+            // TEMPORARY:
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new Appointments(), DatabaseManager.appointmentsCollection);
         }
     }
 
@@ -52,22 +55,25 @@ public class Patient implements Client {
             DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
             DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);
         } else {
-            System.out.println("Document deleted, patient_id removed, and migrated successfully.");
+            System.out.println("Error: requested item does not exist in DB");
         }        
     }
 
     @Override
     public void executeRequestedOperation(String topic, String payload) {
         String operation = Utils.getSubstringAtIndex(topic, 0, true);
+        String publishTopic = "";
 
         if (operation.equals("create")) {
             createAppointment(payload);
+            publishTopic = "pub/patient/appointments/create";
         } else {
             deleteAppointment(payload);
+            publishTopic = "pub/patient/appointments/delete";
         }
 
         if (payloadDoc != null) {
-            MqttMain.subscriptionManagers.get(topic).publishMessage("pub/patient/notify", payloadDoc.toJson());
+            MqttMain.subscriptionManagers.get(topic).publishMessage(publishTopic, payloadDoc.toJson());
         } else {
             System.out.println("Status 404 - No dentist on the available time was found");
         }

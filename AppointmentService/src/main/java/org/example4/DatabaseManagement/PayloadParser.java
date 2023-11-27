@@ -46,6 +46,7 @@ public class PayloadParser {
 
     public static Document savePayloadDocument(String payload, CollectionSchema collectionSchema, MongoCollection<Document> collection) {
         Document payloadDoc = convertPayloadToDocument(payload, collectionSchema);
+
         collection.insertOne(payloadDoc);
         return payloadDoc;
     }
