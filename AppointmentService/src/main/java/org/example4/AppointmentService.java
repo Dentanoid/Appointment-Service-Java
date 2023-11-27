@@ -19,9 +19,6 @@ import org.example4.DatabaseManagement.Schemas.AvailableTimes;
 import org.example4.TopicManagement.TopicManager;
 
 public class AppointmentService {
-    public static MqttMain mqttManager1;
-    public static MqttMain mqttManager2;
-
     public static void main(String[] args) {
         DatabaseManager.initializeDatabaseConnection();
         // DatabaseManager.deleteAllCollectionInstances(); // <-- For developers when testing

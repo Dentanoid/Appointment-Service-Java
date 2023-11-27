@@ -4,17 +4,16 @@ import org.bson.Document;
 public class Appointments implements CollectionSchema {
     String clinic_id;
     String dentist_id;
-    String patient_id;
     String start_time;
     String end_time;
-    String appointment_id;
+    String patient_id;
 
     public Appointments() {
         this.clinic_id = " ";
         this.dentist_id = " ";
-        this.patient_id = " ";
         this.start_time = " ";
         this.end_time = " ";
+        this.patient_id = " ";
     }
 
     public Document getDocument() {
