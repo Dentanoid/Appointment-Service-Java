@@ -1,4 +1,4 @@
-package org.example4.Schemas;
+package org.example4.DatabaseManagement.Schemas;
 import org.bson.Document;
 
 public class AvailableTimes implements CollectionSchema {

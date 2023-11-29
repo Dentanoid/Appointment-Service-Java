@@ -4,14 +4,15 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.example4.AppointmentService;
-import org.example4.DatabaseManager;
 import org.example4.MqttMain;
 import org.example4.Utils;
-import org.example4.Schemas.Appointments;
-import org.example4.Schemas.AvailableTimes;
+import org.example4.DatabaseManagement.DatabaseManager;
+import org.example4.DatabaseManagement.PayloadParser;
+import org.example4.DatabaseManagement.Schemas.Appointments;
+import org.example4.DatabaseManagement.Schemas.AvailableTimes;
 
 public class Dentist implements Client {
-    private Document payloadDoc;
+    private Document payloadDoc = null;
 
     public Dentist(String topic, String payload) {
         executeRequestedOperation(topic, payload);
@@ -20,45 +21,63 @@ public class Dentist implements Client {
     // Dentist creates a timeslot in which patients can book appointments
     @Override
     public void createAppointment(String payload) {
-        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new AvailableTimes());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.availableTimesCollection, payloadDoc);
+        String objectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
+
+        // If the payload is unique, publish a time slot
+        if (objectId == "-1") {
+            // TODO: Check if dentist's timeslots overlaps from payload
+            // PROBLEM: A dentist can have multiple appointments/available-times a day, but their intervals cannot overlap
+
+            System.out.println("************* PAYLOAD: ****************");
+            System.out.println(payload);
+            System.out.println("*************************************");
+
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);  
+        }
     }
 
+     // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
     @Override
     public void deleteAppointment(String payload) {
-        // This method recieves a payload that contains the objectId to delete and the other appointment attributes to be sent in the notification
+        String appointmentObjectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.appointmentsCollection); // Previous: new Appointments()
+        String availableTimeObjectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
-        try {
-            String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments());
-            Bson searchQuery = new Document("appointment_id", appointmentId);
+        // The dentist has an appointment to cancel
+        if (appointmentObjectId != "-1") {
+            payloadDoc = PayloadParser.findDocumentById(appointmentObjectId, DatabaseManager.appointmentsCollection);
+            DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);                        
+        }
 
-            DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
-            DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
+        // The dentist has an available time to cancel
+        if (availableTimeObjectId != "-1") {
+            payloadDoc = PayloadParser.findDocumentById(availableTimeObjectId, DatabaseManager.availableTimesCollection);
+            DatabaseManager.availableTimesCollection.findOneAndDelete(payloadDoc);
+        }
 
+        if (payloadDoc != null) {
             System.out.println("Appointment deleted successfully.");
-        } catch (Exception e) {
-            System.out.println("An error occurred: " + e.getMessage());
         }
     }
 
     @Override
     public void executeRequestedOperation(String topic, String payload) {
         String operation = Utils.getSubstringAtIndex(topic, 0, true);
-        String operationIdentifier = "create";
+        String publishTopic = "";
+
+        System.out.println("1111111111111111111111111");
 
         if (operation.equals("create")) {
             createAppointment(payload);
+            publishTopic = "pub/dentist/availabletimes/create";
         } else {
             deleteAppointment(payload);            
-            operationIdentifier = "delete";
+            publishTopic = "pub/dentist/delete";
         }
-
-        String publishTopic = "pub/dentist/notify/" + operationIdentifier;
 
         if (payloadDoc != null) {
             MqttMain.subscriptionManagers.get(topic).publishMessage(publishTopic, payloadDoc.toJson());
         } else {
-            System.out.println("Status 404 - Did not find a timeslot to delete");
+            System.out.println("Status 404 - Did not find a timeslot");
         }
     }
 }

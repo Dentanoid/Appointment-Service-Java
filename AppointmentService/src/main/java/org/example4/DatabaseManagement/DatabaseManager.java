@@ -1,14 +1,19 @@
-package org.example4;
+package org.example4.DatabaseManagement;
 
 import java.util.Iterator;
 
 import org.bson.Document;
-import org.example4.Schemas.Appointments;
-import org.example4.Schemas.CollectionSchema;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import org.example4.DatabaseManagement.Schemas.Appointments;
+import org.example4.DatabaseManagement.Schemas.CollectionSchema;
+
+import static com.mongodb.client.model.Filters.eq;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -26,24 +31,6 @@ public class DatabaseManager {
         appointmentDatabase = client.getDatabase("AppointmentService");
         availableTimesCollection = appointmentDatabase.getCollection("AvailableTimes");
         appointmentsCollection = appointmentDatabase.getCollection("Appointments");
-    }
-
-    // Convert the payload-string to a document that can be stored in the database
-    public static Document convertPayloadToDocument(String payload, CollectionSchema classSchema) {
-        Gson gson = new Gson();
-        CollectionSchema schemaClass = gson.fromJson(payload, classSchema.getClass());
-        return schemaClass.getDocument();
-    }
-
-    public static String getAttributeValue(String payload, String attributeName, CollectionSchema classSchema) {
-        Gson gson = new Gson();
-        CollectionSchema schemaObject = gson.fromJson(payload, classSchema.getClass());
-        return schemaObject.getDocument().get(attributeName).toString();
-    }
-
-    // POST - Create new instance in a collection
-    public static void saveDocumentInCollection(MongoCollection<Document> collection, Document doc) {
-        collection.insertOne(doc);
     }
 
     // READ - Get all instances in a collection

@@ -4,11 +4,13 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.example4.AppointmentService;
-import org.example4.DatabaseManager;
 import org.example4.MqttMain;
 import org.example4.Utils;
-import org.example4.Schemas.Appointments;
-import org.example4.Schemas.AvailableTimes;
+import org.example4.DatabaseManagement.DatabaseManager;
+import org.example4.DatabaseManagement.PayloadParser;
+import org.example4.DatabaseManagement.Schemas.Appointments;
+import org.example4.DatabaseManagement.Schemas.AvailableTimes;
+import org.example4.DatabaseManagement.Schemas.CollectionSchema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -22,54 +24,56 @@ public class Patient implements Client {
     // Patient books existing timeslot
     @Override
     public void createAppointment(String payload) {
-        payloadDoc = DatabaseManager.convertPayloadToDocument(payload, new Appointments());
-        DatabaseManager.saveDocumentInCollection(DatabaseManager.appointmentsCollection, payloadDoc);
+        String objectId =  PayloadParser.getObjectId(payload, new AvailableTimes(), DatabaseManager.availableTimesCollection);
 
-        String dentistId = DatabaseManager.getAttributeValue(payload, "dentist_id", new AvailableTimes());
-        Bson searchQuery = new Document("dentist_id", dentistId);
+        // If an dentist 'available time' exists at requested time to book
+        if (objectId != "-1") {
+            // Delete dentist's slot from 'AvailableTimes' collection
+            Document dentistAvailableTimeDoc = PayloadParser.findDocumentById(objectId, DatabaseManager.availableTimesCollection);
+            DatabaseManager.availableTimesCollection.findOneAndDelete(dentistAvailableTimeDoc);
 
-        payloadDoc = DatabaseManager.availableTimesCollection.findOneAndDelete(searchQuery);
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        } else {
+
+            // NOTE: The above if-statement is unnecessary if only available appointsments are displayed on FrontEnd
+            // TEMPORARY:
+            payloadDoc = PayloadParser.savePayloadDocument(payload, new Appointments(), DatabaseManager.appointmentsCollection);
+        }
     }
 
+    // Delete instance from 'Appointments' and add it as 'AvailableTime'
     @Override
     public void deleteAppointment(String payload) {
-        String appointmentId = DatabaseManager.getAttributeValue(payload, "appointment_id", new Appointments()); // TODO: Create method getValue() in Client.java
-        Bson searchQuery = new Document("appointment_id", appointmentId); // TODO: Refactor into 'query' method and reuse across all methods in both client-classes
+        String objectId =  PayloadParser.getObjectId(payload, new Appointments(), DatabaseManager.appointmentsCollection);
 
-        try {
-            Document foundDocument = DatabaseManager.appointmentsCollection.find(searchQuery).first();
+        // If payload-request is consistent with the actual value in database
+        if (objectId != "-1") {
+            payloadDoc = PayloadParser.findDocumentById(objectId, DatabaseManager.appointmentsCollection);
+            payloadDoc.remove("patient_id");
 
-            if (foundDocument != null) {
-                payloadDoc = DatabaseManager.appointmentsCollection.findOneAndDelete(searchQuery);
-
-                // Remove the additional attributes that distinguishes an 'Appointment' collection instance from 'AvailableTimes'
-                payloadDoc.remove("patient_id");
-                payloadDoc.remove("appointment_id");
-
-                // Insert the modified document into the AvailableTimes collection
-                DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
-
-                System.out.println("Document deleted, patient_id removed, and migrated successfully.");
-            } else {
-                System.out.println("Object with this objectId is not found");
-            }
-        } catch (Exception e) {
-            System.out.println("An error occurred: " + e.getMessage());
-        }
+            // TODO: Create method in 'DatabaseManager.java' migrateData(collectionA, collectionB)
+            DatabaseManager.availableTimesCollection.insertOne(payloadDoc);
+            DatabaseManager.appointmentsCollection.findOneAndDelete(payloadDoc);
+        } else {
+            System.out.println("Error: requested item does not exist in DB");
+        }        
     }
 
     @Override
     public void executeRequestedOperation(String topic, String payload) {
         String operation = Utils.getSubstringAtIndex(topic, 0, true);
+        String publishTopic = "";
 
         if (operation.equals("create")) {
             createAppointment(payload);
+            publishTopic = "pub/patient/appointments/create";
         } else {
             deleteAppointment(payload);
+            publishTopic = "pub/patient/appointments/delete";
         }
 
         if (payloadDoc != null) {
-            MqttMain.subscriptionManagers.get(topic).publishMessage("pub/patient/notify", payloadDoc.toJson());
+            MqttMain.subscriptionManagers.get(topic).publishMessage(publishTopic, payloadDoc.toJson());
         } else {
             System.out.println("Status 404 - No dentist on the available time was found");
         }
